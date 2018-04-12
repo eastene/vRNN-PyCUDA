@@ -1,7 +1,9 @@
 import argparse
 import json
+import RNN
 import os
 
+rnn = RNN()
 
 # parse single json object at a time
 def parse_file(file):
@@ -10,7 +12,10 @@ def parse_file(file):
 
 
 def train():
-    pass
+    for f in os.listdir('train-example-data'):
+        data = parse_file(f)
+        for obj in data:
+            rnn.forward_prop(obj['text'])
 
 
 def run():
@@ -23,7 +28,8 @@ def main():
                         help='train on example datasets')
     parser.add_argument('--run', action='store_false', dest='train',
                         help='generate article text, requires trained model')
-    parser.add_argument('--profile', dest='profile')
+    parser.add_argument('--profile', dest='profile',
+                        help='profile training/running RNN model save results to file')
     parser.set_defaults(train=True)
 
     args = parser.parse_args()
