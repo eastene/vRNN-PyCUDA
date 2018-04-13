@@ -1,6 +1,6 @@
 import argparse
 import json
-import RNN
+from model.RNN import RNN
 import os
 
 rnn = RNN()

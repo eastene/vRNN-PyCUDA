@@ -1,4 +1,4 @@
-import Layer
+from model.Layer import Layer
 import numpy as np
 
 class RNN:
@@ -15,7 +15,7 @@ class RNN:
 
         pass
 
-    def forward_prop(self):
+    def forward_prop(self, X):
         pass
 
     def backward_prop(self):
