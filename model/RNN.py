@@ -15,8 +15,12 @@ class RNN:
 
         pass
 
-    def forward_prop(self, X):
+    def train(self, X):
         pass
+
+    def forward_prop(self):
+        pass
+
 
     def backward_prop(self):
         pass

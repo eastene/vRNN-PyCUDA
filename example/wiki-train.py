@@ -15,7 +15,7 @@ def train():
     for f in os.listdir('train-example-data'):
         data = parse_file(f)
         for obj in data:
-            rnn.forward_prop(obj['text'])
+            rnn.train(obj['text'])
 
 
 def run():
