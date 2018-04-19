@@ -3,7 +3,6 @@ import json
 from model.RNN import RNN
 import os
 
-rnn = RNN()
 
 # parse single json object at a time
 def parse_file(file):
@@ -11,14 +10,18 @@ def parse_file(file):
         yield json.loads(line)
 
 
-def train():
+def train(rnn):
     for f in os.listdir('train-example-data'):
         data = parse_file(f)
         for obj in data:
             rnn.train(obj['text'])
 
 
-def run():
+def run(rnn):
+    pass
+
+
+def profile(rnn):
     pass
 
 
@@ -34,10 +37,13 @@ def main():
 
     args = parser.parse_args()
 
+    rnn = RNN(10000, [100, 150])  # vocab size of 10000, 2 hidden layers of size 100
+
     if args.train:
-        train()
+        print("Beginning training on example dataset")
+        train(rnn)
     else:
-        run()
+        run(rnn)
 
 
 if __name__ == "__main__":
