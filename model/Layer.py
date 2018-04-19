@@ -2,6 +2,7 @@ import math
 import numpy as np
 from sklearn.utils.extmath import softmax
 
+
 class Layer:
 
     def __init(self, vocab_size, layer_size, stride_size):
@@ -42,3 +43,12 @@ class Layer:
         yhat_t = softmax(self.a)
 
         return yhat_t
+
+    def backward_prop(self):
+        pass
+
+    def serialize(self):
+        pass
+
+    def deserialize(self):
+        pass
