@@ -11,10 +11,9 @@ class RNN:
         self.output_layer = Layer(hidden_layers.tail(), vocab_size)
 
     def train(self, X):
-        T = len(X)
-        for t in range(T - 1):
-            yhat_t = self.forward_prop(X[t])
-            self.backward_prop(yhat_t, X[t + 1])
+        for x in X:
+            yhat_t = self.forward_prop(x)
+            self.backward_prop(yhat_t, X.__next__)
 
     def forward_prop(self, x_t):
         yhat_t = self.input_layer.forward_prop(x_t)

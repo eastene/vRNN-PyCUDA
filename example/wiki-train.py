@@ -2,8 +2,8 @@ import argparse
 import json
 from model.RNN import RNN
 import os
-from preprocess.Vocab import top_k_word_frequencies
-
+from preprocess.nlp import top_k_word_frequencies, tokenize, normalize
+from preprocess.Vocab import Vocab
 
 # parse single json object at a time
 def parse_file(file):
@@ -11,11 +11,8 @@ def parse_file(file):
         yield json.loads(line)
 
 
-def train(rnn):
-    for f in os.listdir('train-example-data'):
-        data = parse_file(f)
-        for obj in data:
-            rnn.train(obj['text'])
+def train(rnn, encoder):
+    rnn.train(encoder)
 
 
 def run(rnn, seed):
@@ -77,10 +74,18 @@ def main():
             vocab = read_vocab_file('example-vocab-' + str(args.vocab_size) + '.txt')
 
         # Step 2: NLP processing of corpus
+        training_set = ""
+        for f in os.listdir('train-example-data'):
+            data = parse_file(f)
+            for obj in data:
+                training_set += obj['text']
+        tokens = tokenize(training_set)
+        normal = normalize(tokens)
 
-        # Step 3: RNN training
+        # Step 3: Encoding and RNN training
+        encoder = Vocab(vocab)
         print("Beginning training on example dataset")
-        train(rnn)
+        train(rnn, encoder)
 
     else:
         run(rnn, args.seed)
