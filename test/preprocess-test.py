@@ -3,6 +3,7 @@ import numpy as np
 from preprocess.nlp import top_k_word_frequencies, tokenize
 from preprocess.Vocab import Vocab
 
+
 class VocabTest(unittest.TestCase):
 
     def test_encoder(self):
@@ -14,6 +15,7 @@ class VocabTest(unittest.TestCase):
         for enc in encoder.encode(words):
             self.assertListEqual(enc.tolist(), answer[i])
             i += 1
+
 
 class NLPTest(unittest.TestCase):
 
@@ -28,7 +30,8 @@ class NLPTest(unittest.TestCase):
         text = "This is a test of the word tokenizer."
         tokens = ["This", "is", "a", "test", "of", "the", "word", "tokenizer", "."]
 
-        #self.assertCountEqual(tokenize(text), tokens)
+        self.assertCountEqual(tokenize(text), tokens)
+
 
 if __name__ == "__main__":
     unittest.main

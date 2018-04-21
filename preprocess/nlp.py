@@ -1,4 +1,7 @@
 import heapq
+import nltk
+
+nltk.download('punkt')
 
 
 def top_k_word_frequencies(text, k):
@@ -18,7 +21,7 @@ def top_k_word_frequencies(text, k):
 
 
 def tokenize(text):
-    return word_tokenize(text)
+    return nltk.word_tokenize(text)
 
 
 def normalize(tokens):
