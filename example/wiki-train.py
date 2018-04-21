@@ -2,7 +2,7 @@ import argparse
 import json
 from model.RNN import RNN
 import os
-from example.vocab import top_k_word_frequencies
+from preprocess.Vocab import top_k_word_frequencies
 
 
 # parse single json object at a time
@@ -18,7 +18,7 @@ def train(rnn):
             rnn.train(obj['text'])
 
 
-def run(rnn):
+def run(rnn, seed):
     pass
 
 
@@ -26,11 +26,29 @@ def profile(rnn):
     pass
 
 
-def gen_vocab():
+def gen_vocab(size, vocab_file='example-vocab.txt'):
+    corpus = ""
     for f in os.listdir('train-example-data'):
         data = parse_file(f)
         for obj in data:
-            top_k_word_frequencies(obj['text'])
+            corpus += obj['text']
+    top_k = top_k_word_frequencies(corpus, size)
+
+    with open(vocab_file, 'w') as f:
+        for word in top_k:
+            f.write(word)
+        f.write("<UNK>")
+        f.write("<START>")
+        f.write("<STOP>")
+
+
+def read_vocab_file(vocab_file='example-vocab-10000.txt'):
+    vocab = {}
+    with open(vocab_file, 'r') as f:
+        for line in f:
+            vocab += line
+    return vocab
+
 
 def main():
     parser = argparse.ArgumentParser(description="Train or run RNN using example Wikipedia data.")
@@ -42,17 +60,30 @@ def main():
                         help='profile training/running RNN model save results to file')
     parser.add_argument('--vocabsize', dest='vocab_size',
                         help='specify vocabulary size (default 10000 tokens), only applies when training')
-    parser.set_defaults(train=True, profile=False, vocab_size=10000)
+    parser.add_argument('--seed', dest='seed',
+                        help='seed the rnn input for sequence generation')
+    parser.set_defaults(train=True, profile=False, vocab_size=10000, seed=42)
 
     args = parser.parse_args()
 
-    rnn = RNN(args.vocab_size, [100, 150])  # vocab size of 10000, 2 hidden layers of size 100
-
+    rnn = RNN(args.vocab_size, [100, 100])  # vocab size of 10000, 2 hidden layers of size 100
     if args.train:
+        # Step 1: Vocab generation
+        print("Generating vocabulary of " + str(args.vocab_size) + " unique tokens.")
+        vocab = {}
+        if args.vocab_size == 10000:
+            vocab = read_vocab_file()
+        else:
+            vocab = read_vocab_file('example-vocab-' + str(args.vocab_size) + '.txt')
+
+        # Step 2: NLP processing of corpus
+
+        # Step 3: RNN training
         print("Beginning training on example dataset")
         train(rnn)
+
     else:
-        run(rnn)
+        run(rnn, args.seed)
 
 
 if __name__ == "__main__":
