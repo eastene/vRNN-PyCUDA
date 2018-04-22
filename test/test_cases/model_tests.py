@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-from model.Layer import Layer
-from model.RNN import RNN
+from src.model.Layer import Layer
+from src.model.RNN import RNN
 
 
 class RNNTestCase(unittest.TestCase):

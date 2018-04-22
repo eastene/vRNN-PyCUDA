@@ -1,5 +1,5 @@
-from model.Layer import Layer
-import numpy as np
+from src.model.Layer import Layer
+
 
 class RNN:
 

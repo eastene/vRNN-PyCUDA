@@ -1,9 +1,9 @@
 import argparse
 import json
-from model.RNN import RNN
+from src.model.RNN import RNN
 import os
-from preprocess.nlp import top_k_word_frequencies, tokenize, normalize
-from preprocess.Vocab import Vocab
+from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
+from src.preprocess.Vocab import Vocab
 
 # parse single json object at a time
 def parse_file(file):

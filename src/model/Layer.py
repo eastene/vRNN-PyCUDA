@@ -1,5 +1,5 @@
 import numpy as np
-from model.utils import sigmoid, tanh, softmax
+from src.model.utils import sigmoid, tanh, softmax
 
 #import pycuda.driver as cuda
 #import pycuda.autoinit

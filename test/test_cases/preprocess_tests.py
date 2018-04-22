@@ -1,7 +1,6 @@
 import unittest
-import numpy as np
-from preprocess.nlp import top_k_word_frequencies, tokenize, normalize
-from preprocess.Vocab import Vocab
+from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
+from src.preprocess.Vocab import Vocab
 
 
 class VocabTestCase(unittest.TestCase):
