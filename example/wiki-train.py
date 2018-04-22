@@ -85,7 +85,7 @@ def main():
         # Step 3: Encoding and RNN training
         encoder = Vocab(vocab)
         print("Beginning training on example dataset")
-        train(rnn, encoder)
+        train(rnn, encoder.encode(normal))
 
     else:
         run(rnn, args.seed)

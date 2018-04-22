@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from preprocess.nlp import top_k_word_frequencies, tokenize
+from preprocess.nlp import top_k_word_frequencies, tokenize, normalize
 from preprocess.Vocab import Vocab
 
 
@@ -31,6 +31,12 @@ class NLPTest(unittest.TestCase):
         tokens = ["This", "is", "a", "test", "of", "the", "word", "tokenizer", "."]
 
         self.assertCountEqual(tokenize(text), tokens)
+
+    def test_normalize(self):
+        tokens = ["This", "is", "a", "TEST", "of", "THe", "toKen", "normalizer", "."]
+        answer = ["this", "is", "a", "test", "of", "the", "token", "normalizer", "."]
+
+        self.assertListEqual(normalize(tokens), answer)
 
 
 if __name__ == "__main__":

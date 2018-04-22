@@ -1,13 +1,16 @@
 import math
+import numpy as np
 from sklearn.utils import extmath
 
 
 def sigmoid(X):
-    return 1 / (1 + math.exp(-X))
+    func = np.vectorize(lambda x: 1 / (1 + math.exp(-x)))
+    return func(X)
 
 
 def tanh(X):
-    return math.tanh(X)
+    func = np.vectorize(lambda x: math.tanh(x))
+    return func(X)
 
 
 def softmax(X):

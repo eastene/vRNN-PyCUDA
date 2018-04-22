@@ -23,3 +23,6 @@ class Vocab:
             # unknown word
             else:
                 yield np.array([0 for i in range(self.vocab_size)])
+
+    def decode(self, encoding):
+        pass

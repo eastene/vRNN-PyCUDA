@@ -1,9 +1,9 @@
 import numpy as np
 from model.utils import sigmoid, tanh, softmax
 
-import pycuda.driver as cuda
-import pycuda.autoinit
-from pycuda.compiler import SourceModule
+#import pycuda.driver as cuda
+#import pycuda.autoinit
+#from pycuda.compiler import SourceModule
 
 class Layer:
 
@@ -11,22 +11,22 @@ class Layer:
         # nvidia GPUs require single precision floats
 
         # layer weights
-        self.Wf = np.random.uniform(0, 0, (layer_size, layer_size + input_size)).astype(np.float32)  # forget gate
-        self.Wi = np.random.uniform(0, 0, (layer_size, layer_size + input_size)).astype(np.float32)  # update gate
-        self.Wc = np.random.uniform(0, 0, (layer_size, layer_size + input_size)).astype(np.float32)  # tanh gate
-        self.Wo = np.random.uniform(0, 0, (layer_size, layer_size + input_size)).astype(np.float32)  # output gate
-        self.Wy = np.random.uniform(0, 0, (input_size, layer_size)).astype(np.float32)  # hidden layer to output gate
+        self.Wf = np.random.uniform(0, 0, (layer_size, layer_size + input_size))  # forget gate
+        self.Wi = np.random.uniform(0, 0, (layer_size, layer_size + input_size))  # update gate
+        self.Wc = np.random.uniform(0, 0, (layer_size, layer_size + input_size))  # tanh gate
+        self.Wo = np.random.uniform(0, 0, (layer_size, layer_size + input_size))  # output gate
+        self.Wy = np.random.uniform(0, 0, (input_size, layer_size))  # hidden layer to output gate
 
         # biases
-        self.bf = np.random.uniform(0, 0, (layer_size, 1)).astype(np.float32)  # forget gate
-        self.bi = np.random.uniform(0, 0, (layer_size, 1)).astype(np.float32)  # update gate
-        self.bc = np.random.uniform(0, 0, (layer_size, 1)).astype(np.float32)  # tanh gate
-        self.bo = np.random.uniform(0, 0, (layer_size, 1)).astype(np.float32)  # output gate
-        self.by = np.random.uniform(0, 0, (input_size, 1)).astype(np.float32)  # hidden layer to output gate
+        self.bf = np.random.uniform(0, 0, (layer_size, 1))  # forget gate
+        self.bi = np.random.uniform(0, 0, (layer_size, 1))  # update gate
+        self.bc = np.random.uniform(0, 0, (layer_size, 1))  # tanh gate
+        self.bo = np.random.uniform(0, 0, (layer_size, 1))  # output gate
+        self.by = np.random.uniform(0, 0, (input_size, 1))  # hidden layer to output gate
 
         # previous time states
-        self.a = np.zeros((layer_size, 1)).astype(np.float32)
-        self.c = np.zeros((layer_size, 1)).astype(np.float32)
+        self.a = np.zeros((layer_size, 1))
+        self.c = np.zeros((layer_size, 1))
 
         # alloc on and copy to GPU
 
@@ -36,10 +36,10 @@ class Layer:
         concat = np.concatenate((self.a, x_t), axis = 0)
 
         # compute internal gate values
-        ft = sigmoid(self.Wf * concat + self.bf)
-        it = sigmoid(self.Wi * concat + self.bi)
-        cct = tanh(self.Wc * concat + self.bc)
-        ot = sigmoid(self.Wo * concat + self.bo)
+        ft = sigmoid(np.matmul(self.Wf, concat) + self.bf)
+        it = sigmoid(np.matmul(self.Wi, concat)+ self.bi)
+        cct = tanh(np.matmul(self.Wc, concat) + self.bc)
+        ot = sigmoid(np.matmul(self.Wo, concat) + self.bo)
 
         # update next time states
         self.c = ft * self.c + it * cct
@@ -48,7 +48,7 @@ class Layer:
         # compute predicted output
         yhat_t = softmax(self.a)
 
-        return yhat_t
+        return yhat_t.astype(np.int64)
 
     def backward_prop(self):
         pass
