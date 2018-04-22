@@ -6,9 +6,19 @@ class RNN:
     def __init__(self, vocab_size, hidden_layers):
         # set parameters
         self.vocab_size = vocab_size
-        self.hidden_layers = [Layer(previous_layer, layer) for previous_layer, layer in zip([vocab_size] + hidden_layers, hidden_layers)]
+        self.hidden_layers = [Layer(previous_layer, layer) for previous_layer, layer in
+                              zip([vocab_size] + hidden_layers, hidden_layers)]
         self.input_layer = Layer(vocab_size, vocab_size)
-        self.output_layer = Layer(hidden_layers.tail(), vocab_size)
+        self.output_layer = Layer(hidden_layers[-1], vocab_size)
+
+    def __repr__(self):
+        num_layers = 1 + len(self.hidden_layers) + 1
+        rep = "{0} layers: \n".format(num_layers)
+        rep += "  Input layer of size {0}\n".format(self.input_layer)
+        for layer in self.hidden_layers:
+            rep += "  Hidden layer of size {0}\n".format(layer)
+        rep += "  Output layer of size {0}\n".format(self.output_layer)
+        return rep
 
     def train(self, X):
         for x in X:

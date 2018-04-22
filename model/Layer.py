@@ -8,6 +8,8 @@ from model.utils import sigmoid, tanh, softmax
 class Layer:
 
     def __init__(self, input_size, layer_size):
+        self.input_size = input_size
+        self.layer_size = layer_size
         # nvidia GPUs require single precision floats
 
         # layer weights
@@ -30,6 +32,8 @@ class Layer:
 
         # alloc on and copy to GPU
 
+    def __repr__(self):
+        return "{0} to {1}".format(self.input_size, self.layer_size)
 
     def forward_prop(self, x_t):
         # concatenate a and x for efficiency

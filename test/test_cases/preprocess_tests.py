@@ -4,7 +4,7 @@ from preprocess.nlp import top_k_word_frequencies, tokenize, normalize
 from preprocess.Vocab import Vocab
 
 
-class VocabTest(unittest.TestCase):
+class VocabTestCase(unittest.TestCase):
 
     def test_encoder(self):
         vocab = {"alpha", "beta", "charlie", "delta"}
@@ -17,7 +17,7 @@ class VocabTest(unittest.TestCase):
             i += 1
 
 
-class NLPTest(unittest.TestCase):
+class NLPTestCase(unittest.TestCase):
 
     def test_top_k_word_frequency(self):
         text = ["this", "this", "this", "is", "a", "is", "is", "test", "of", "of",
@@ -37,7 +37,3 @@ class NLPTest(unittest.TestCase):
         answer = ["this", "is", "a", "test", "of", "the", "token", "normalizer", "."]
 
         self.assertListEqual(normalize(tokens), answer)
-
-
-if __name__ == "__main__":
-    unittest.main
