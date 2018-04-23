@@ -1,9 +1,10 @@
 import numpy as np
-from src.model.utils import sigmoid, tanh, softmax
+from src.utils.activations import sigmoid, tanh, softmax
+from src.utils.cuda import modified_gemm_gpu
 
-#import pycuda.driver as cuda
-#import pycuda.autoinit
-#from pycuda.compiler import SourceModule
+import pycuda.autoinit
+import pycuda.gpuarray
+
 
 class Layer:
 
@@ -29,8 +30,6 @@ class Layer:
         # previous time states
         self.a = np.zeros((layer_size, 1))
         self.c = np.zeros((layer_size, 1))
-
-        # alloc on and copy to GPU
 
     def __repr__(self):
         return "{0} to {1}".format(self.input_size, self.layer_size)
@@ -63,8 +62,33 @@ class Layer:
     def deserialize(self):
         pass
 
-    def forward_prop_gpu(self):
-        pass
+    def layer_to_gpu(self):
+        # alloc on and copy to GPU using GPUArrays doc: https://documen.tician.de/pycuda/array.html
+        # weights
+        self.Wf_gpu = pycuda.gpuarray.to_gpu(self.Wf)
+        Wi_gpu = pycuda.gpuarray.to_gpu(self.Wi)
+        Wc_gpu = pycuda.gpuarray.to_gpu(self.Wc)
+        Wo_gpu = pycuda.gpuarray.to_gpu(self.Wo)
+        Wy_gpu = pycuda.gpuarray.to_gpu(self.Wy)
+        # biases
+        self.bf_gpu = pycuda.gpuarray.to_gpu(self.bf)
+        bi_gpu = pycuda.gpuarray.to_gpu(self.bi)
+        bc_gpu = pycuda.gpuarray.to_gpu(self.bc)
+        bo_gpu = pycuda.gpuarray.to_gpu(self.bo)
+        by_gpu = pycuda.gpuarray.to_gpu(self.by)
+        # time states
+        c_gpu = pycuda.gpuarray.to_gpu(self.c)
+        self.a_gpu = pycuda.gpuarray.to_gpu(self.a)
+        # outputs
+        self.ft_gpu = pycuda.gpuarray.zeros((self.layer_size, 1), np.float64)
+        it_gpu = pycuda.gpuarray.zeros((self.layer_size, 1), np.float64)
+        cct_gpu = pycuda.gpuarray.zeros((self.layer_size, 1), np.float64)
+        ot_gpu = pycuda.gpuarray.zeros((self.layer_size, 1), np.float64)
+        yhat_gpu = pycuda.gpuarray.zeros((self.layer_size, 1), np.float64)
+
+    def forward_prop_gpu(self, x_t_gpu):
+        concat = self.a_gpu
+        self.ft_gpu = modified_gemm_gpu(self.Wf, concat, self.bf)
 
     def backward_prop_gpu(self):
         pass

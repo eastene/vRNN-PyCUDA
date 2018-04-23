@@ -3,7 +3,6 @@ import numpy as np
 from src.model.Layer import Layer
 from src.model.RNN import RNN
 
-
 class RNNTestCase(unittest.TestCase):
 
     def test_init(self):
@@ -26,3 +25,12 @@ class LayerTestCase(unittest.TestCase):
         y_t = [[1], [1], [1], [1]]
 
         self.assertListEqual(layer.forward_prop(x_t).tolist(), y_t)
+
+    """def test_forward_prop_gpu(self):
+        layer = Layer(10, 10)
+        layer.layer_to_gpu()
+        x_t_gpu = pycuda.gpuarray.zeros((10,1), np.float64)
+        y_t = np.array([0 for i in range(10)]).transpose()
+
+        self.assertListEqual(layer.forward_prop_gpu(x_t_gpu).tolist(), y_t.tolist())
+    """
