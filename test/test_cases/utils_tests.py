@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
 import pycuda.gpuarray
-from src.utils.cuda import modified_gemm_gpu
-
+from src.utils.cuda import *
+from src.utils.activations import *
 
 class CudaTestCase(unittest.TestCase):
 
@@ -18,7 +18,36 @@ class CudaTestCase(unittest.TestCase):
 
         y = np.matmul(a, b) + c
 
-        y_gpu = np.empty((10, 4))
-        Y.get(y_gpu)
+        y_gpu = Y.get()
 
-        self.assertListEqual(y.tolist(), y_gpu.tolist())
+        self.assertListEqual(y_gpu.tolist(), y.tolist())
+
+    def test_tanh_gpu(self):
+        shape = (4, 1)
+        a = np.random.uniform(-100, 100, shape)
+        A = pycuda.gpuarray.to_gpu(a)
+        x_gpu = tanh_gpu(A).get()
+        x = tanh(a)
+
+        for i in range(shape[0]):
+            self.assertLessEqual(abs(x_gpu[i] - x[i]), 1e-5)
+
+    def test_sigmoid_gpu(self):
+        shape = (4, 1)
+        a = np.random.uniform(-100, 100, shape)
+        A = pycuda.gpuarray.to_gpu(a)
+        x_gpu = sigmoid_gpu(A).get()
+        x = sigmoid(a)
+
+        for i in range(shape[0]):
+            self.assertLessEqual(abs(x_gpu[i] - x[i]), 1e-5)
+
+    def test_softmax_gpu(self):
+        shape = (4, 1)
+        a = np.random.uniform(-100, 100, shape)
+        A = pycuda.gpuarray.to_gpu(a)
+        x_gpu = softmax_gpu(A).get()
+        x = softmax(a)
+
+        for i in range(shape[0]):
+            self.assertLessEqual(abs(x_gpu[i] - x[i]), 1e-5)
