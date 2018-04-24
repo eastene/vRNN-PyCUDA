@@ -28,9 +28,12 @@ class LayerTestCase(unittest.TestCase):
 
     """def test_forward_prop_gpu(self):
         layer = Layer(10, 10)
-        layer.layer_to_gpu()
-        x_t_gpu = pycuda.gpuarray.zeros((10,1), np.float64)
-        y_t = np.array([0 for i in range(10)]).transpose()
-
-        self.assertListEqual(layer.forward_prop_gpu(x_t_gpu).tolist(), y_t.tolist())
+        gpu_layer = Layer(10, 10)
+        gpu_layer.layer_to_gpu()
+        x_t = np.zeros((10, 1))
+        x_t[5] = 1
+        x_t_gpu = pycuda.gpuarray.to_gpu(x_t)
+        y_t_gpu = gpu_layer.forward_prop_gpu(x_t_gpu).get().astype(np.int64)
+        
+        self.assertListEqual(y_t_gpu.tolist(), layer.forward_prop(x_t))
     """

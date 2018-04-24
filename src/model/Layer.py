@@ -11,7 +11,6 @@ class Layer:
     def __init__(self, input_size, layer_size):
         self.input_size = input_size
         self.layer_size = layer_size
-        # nvidia GPUs require single precision floats
 
         # layer weights
         self.Wf = np.random.uniform(0, 0, (layer_size, layer_size + input_size))  # forget gate

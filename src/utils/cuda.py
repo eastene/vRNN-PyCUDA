@@ -7,12 +7,6 @@ import pycuda.gpuarray
 import numpy as np
 
 
-
-increment = ElementwiseKernel(
-        "float *X, float *Y",
-        "Y[i] = 1 + X[i]",
-        "increment")
-
 def modified_gemm_gpu(A, B, C):
     shape = (A.shape[0], B.shape[1])
     api = cluda.cuda_api()
@@ -31,24 +25,24 @@ def tanh_gpu(X):
 
 
 def sigmoid_gpu(X):
-    Y = pycuda.gpuarray.empty(X.shape, dtype=X.dtype)
     sigmoid = ElementwiseKernel(
         "double *Y, double *X",
         "Y[i] = 1.0 / (1.0 + exp (-X[i]) )",
         "sigmoid")
+    Y = pycuda.gpuarray.empty_like(X)
     sigmoid(Y, X)
     return Y
 
 
 def softmax_gpu(X):
-    Y = pycuda.gpuarray.empty(X.shape, dtype=X.dtype)
+    Y = pycuda.gpuarray.empty_like(X)
     exp_sum = ReductionKernel(np.float64, neutral="0.0",
-                           reduce_expr="a + b", map_expr="exp(X[i])",
-                           arguments="double *X", name="exp_sum")
+            reduce_expr="a+b", map_expr="exp (x[i])",
+            arguments="double *x")
     softmax = ElementwiseKernel(
         "double *Y, double *X, double s",
         "Y[i] = exp (X[i]) / s",
         "softmax")
-    s = exp_sum(X).get()
+    s = exp_sum(X)
     softmax(Y, X, s)
     return Y
