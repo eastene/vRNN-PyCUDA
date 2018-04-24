@@ -1,11 +1,14 @@
 import unittest
 import numpy as np
+import pycuda.curandom
 import pycuda.gpuarray
+from pycuda.tools import mark_cuda_test
 from src.utils.cuda import *
 from src.utils.activations import *
 
 class CudaTestCase(unittest.TestCase):
 
+    @mark_cuda_test
     def test_matmul_gpu(self):
         a = np.random.uniform(0, 10, (10, 5))
         b = np.random.uniform(0, 10, (5, 4))
@@ -22,6 +25,7 @@ class CudaTestCase(unittest.TestCase):
 
         self.assertListEqual(y_gpu.tolist(), y.tolist())
 
+    @mark_cuda_test
     def test_tanh_gpu(self):
         shape = (4, 1)
         a = np.random.uniform(-100, 100, shape)
@@ -32,6 +36,7 @@ class CudaTestCase(unittest.TestCase):
         for i in range(shape[0]):
             self.assertLessEqual(abs(x_gpu[i] - x[i]), 1e-5)
 
+    @mark_cuda_test
     def test_sigmoid_gpu(self):
         shape = (4, 1)
         a = np.random.uniform(-100, 100, shape)
@@ -42,11 +47,12 @@ class CudaTestCase(unittest.TestCase):
         for i in range(shape[0]):
             self.assertLessEqual(abs(x_gpu[i] - x[i]), 1e-5)
 
+    @mark_cuda_test
     def test_softmax_gpu(self):
         shape = (4, 1)
-        a = np.random.uniform(-100, 100, shape)
-        A = pycuda.gpuarray.to_gpu(a)
+        A = pycuda.curandom.rand(shape, dtype=np.float64)
         x_gpu = softmax_gpu(A).get()
+        a = A.get()
         x = softmax(a)
 
         for i in range(shape[0]):

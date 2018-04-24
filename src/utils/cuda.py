@@ -1,3 +1,5 @@
+import pycuda.driver as cuda
+import pycuda.autoinit
 from reikna.linalg import MatrixMul
 import reikna.cluda as cluda
 import pycuda.cumath
@@ -35,7 +37,6 @@ def sigmoid_gpu(X):
 
 
 def softmax_gpu(X):
-    Y = pycuda.gpuarray.empty_like(X)
     exp_sum = ReductionKernel(np.float64, neutral="0.0",
             reduce_expr="a+b", map_expr="exp (x[i])",
             arguments="double *x")
@@ -43,6 +44,7 @@ def softmax_gpu(X):
         "double *Y, double *X, double s",
         "Y[i] = exp (X[i]) / s",
         "softmax")
-    s = exp_sum(X)
+    Y = pycuda.gpuarray.empty_like(X)
+    s = exp_sum(X).get()
     softmax(Y, X, s)
     return Y

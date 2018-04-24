@@ -2,6 +2,7 @@ import numpy as np
 from src.utils.activations import sigmoid, tanh, softmax
 from src.utils.cuda import modified_gemm_gpu
 
+import pycuda.driver as cuda
 import pycuda.autoinit
 import pycuda.gpuarray
 
