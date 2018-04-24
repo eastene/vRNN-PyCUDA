@@ -1,4 +1,3 @@
-import pycuda.driver as cuda
 import pycuda.autoinit
 from reikna.linalg import MatrixMul
 import reikna.cluda as cluda

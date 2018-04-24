@@ -50,10 +50,13 @@ class CudaTestCase(unittest.TestCase):
     @mark_cuda_test
     def test_softmax_gpu(self):
         shape = (4, 1)
-        A = pycuda.curandom.rand(shape, dtype=np.float64)
+        a = np.random.uniform(-100, 100, shape)
+        A = pycuda.gpuarray.to_gpu(a)
         x_gpu = softmax_gpu(A).get()
-        a = A.get()
         x = softmax(a)
+
+        print(x)
+        print(x_gpu)
 
         for i in range(shape[0]):
             self.assertLessEqual(abs(x_gpu[i] - x[i]), 1e-5)
