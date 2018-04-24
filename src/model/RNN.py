@@ -34,7 +34,14 @@ class RNN:
         return yhat_t
 
     def backward_prop(self, yhat_t, y_t):
-        pass
+        #retrieve the dimensions
+        
+        #initialize gradients with right sizes
+        yhat_t = self.input_layer.backward_prop()
+        for layer in self.hidden_layers:
+        #     = layer.backward_prop()
+            pass
+        
 
     def serialize(self):
         pass

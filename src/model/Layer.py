@@ -51,10 +51,46 @@ class Layer:
         # compute predicted output
         yhat_t = softmax(self.a)
 
+
+        #store values needed for backward propagation in cache       
         return yhat_t.astype(np.int64)
 
     def backward_prop(self):
-        pass
+        
+        """
+        dx = np.zeros((self.input_size,m,self.hidden_layers))
+        da0 = np.zeros((n_a, m))
+        da_prevt = np.zeros(da0.shape)
+        dc_prevt = np.zeros(da0.shape)
+        dWf = np.zeros((n_a, n_a + input_size))
+        dWi = np.zeros(dWf.shape)
+        dWc = np.zeros(dWf.shape)
+        dWo = np.zeros(dWf.shape)
+        dbf = np.zeros((n_a, 1))
+        dbi = np.zeros(dbf.shape)
+        dbc = np.zeros(dbf.shape)
+        dbo = np.zeros(dbf.shape)
+        """
+        #compute derivates of the gates
+        dot = self.a * tanh(self.c) * ot * (1 - ot)
+        dcct = (self.c * it + ot * (1 - np.square(tanh(self.c))) * it * self.a) * (1 - np.square(cct))
+        dit = (self.c * cct + ot * (1 - np.square(tanh(self.c))) * cct * self.a) * it * (1 - it)
+        dft = (self.c * self.c + ot *(1 - np.square(tanh(self.c))) * self.c * self.a) * ft * (1 - ft)
+
+        # compute parameters  derivatives
+        dWf = np.dot(dft, concat.T)
+        dWi = np.dot(dit, concat.T)
+        dWc = np.dot(dcct, concat.T)
+        dWo = np.dot(dot, concat.T)
+        dbf = np.sum(dft, axis=1 ,keepdims = True)
+        dbi = np.sum(dit, axis=1, keepdims = True)
+        dbc = np.sum(dcct, axis=1,  keepdims = True)
+        dbo = np.sum(dot, axis=1, keepdims = True)
+        
+        #compute derivatives with respect to previous hidden state,memory and input.
+        da_prev = np.dot(Wf[:, :layer_size].T,df)+np.dot(Wi[:, :layer_size],dit)+ np.dot(Wc[:, :layer_size].T, dcct) + np.dot(Wo[:, :layer_size].T, dot)
+        dc_prev = self.c * ft + ot * (1 - np.square(tanh(c_next))) * ft * self.a
+        dxt = np.dot(Wf[:, layer_size:].T, dft) + np.dot(Wi[:, layer_size:].T, dit) + np.dot(Wc[:, layer_size:].T, dcct) + np.dot(Wo[:, layer_size:].T, dot)
 
     def serialize(self):
         pass
