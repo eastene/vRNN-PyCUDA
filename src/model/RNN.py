@@ -3,13 +3,14 @@ from src.model.Layer import Layer
 
 class RNN:
 
-    def __init__(self, vocab_size, hidden_layers):
+    def __init__(self, num_unroll, vocab_size, batch_size, num_layers):
         # set parameters
+        self.num_unroll = num_unroll
         self.vocab_size = vocab_size
-        self.hidden_layers = [Layer(previous_layer, layer) for previous_layer, layer in
-                              zip([vocab_size] + hidden_layers, hidden_layers)]
-        self.input_layer = Layer(vocab_size, vocab_size)
-        self.output_layer = Layer(hidden_layers[-1], vocab_size)
+        self.batch_size = batch_size
+        self.num_layers = num_layers
+
+        self.layers = [Layer(num_unroll, vocab_size, batch_size, i) for i in range(num_layers)]
 
     def __repr__(self):
         num_layers = 1 + len(self.hidden_layers) + 1
@@ -20,7 +21,8 @@ class RNN:
         rep += "  Output layer of size {0}\n".format(self.output_layer)
         return rep
 
-    def train(self, X):
+    def train(self, train_text):
+
         for x in X:
             yhat_t = self.forward_prop(x)
             self.backward_prop(yhat_t, X.__next__)

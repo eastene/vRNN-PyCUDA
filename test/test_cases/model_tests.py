@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from src.model.Layer import Layer
+from src.model.Cell import Cell
 from src.model.RNN import RNN
 
 class RNNTestCase(unittest.TestCase):
@@ -17,10 +17,10 @@ class RNNTestCase(unittest.TestCase):
         self.assertEqual(rnn.__repr__(), answer)
 
 
-class LayerTestCase(unittest.TestCase):
+class CellTestCase(unittest.TestCase):
 
     def test_forward_prop(self):
-        layer = Layer(4, 4)
+        layer = Cell(4, 4)
         x_t = np.array([[0], [0], [0], [1]])
         y_t = [[1], [1], [1], [1]]
 
