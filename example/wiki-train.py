@@ -11,8 +11,8 @@ def parse_file(file):
         yield json.loads(line)
 
 
-def train(rnn, encoder):
-    rnn.train(encoder)
+def train(rnn, batch_generator):
+    rnn.train(batch_generator)
 
 
 def run(rnn, seed):
@@ -47,6 +47,7 @@ def read_vocab_file(vocab_file='example-vocab-10000.txt'):
     return vocab
 
 
+
 def main():
     parser = argparse.ArgumentParser(description="Train or run RNN using example Wikipedia data.")
     parser.add_argument('--train', action='store_true', dest='train',
@@ -59,7 +60,9 @@ def main():
                         help='specify vocabulary size (default 10000 tokens), only applies when training')
     parser.add_argument('--seed', dest='seed',
                         help='seed the rnn input for sequence generation')
-    parser.set_defaults(train=True, profile=False, vocab_size=10000, seed=42)
+    parser.add_argument('--force-cpu', action='store-true', dest='force_cpu',
+                        help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
+    parser.set_defaults(train=True, profile=False, vocab_size=10000, seed=42, force_cpu=False)
 
     args = parser.parse_args()
 

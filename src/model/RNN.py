@@ -1,5 +1,5 @@
 from src.model.Layer import Layer
-
+from src.utils.activations import softmax
 
 class RNN:
 
@@ -21,11 +21,17 @@ class RNN:
         rep += "  Output layer of size {0}\n".format(self.output_layer)
         return rep
 
-    def train(self, train_text):
+    def train(self, batch_generator):
+        for t in range(self.num_unroll):
+            x_t, y_t = batch_generator.next()
+            # forward prop
+            a = self.layers[0].forward_prop(x_t)
+            for layer in self.layers[1:]:
+                a = layer.forward_prop(a)
+            yhat_t = softmax(a)
+            # backward prop
 
-        for x in X:
-            yhat_t = self.forward_prop(x)
-            self.backward_prop(yhat_t, X.__next__)
+        self.backward_prop(yhat_t, X.__next__)
 
     def forward_prop(self, x_t):
         yhat_t = self.input_layer.forward_prop(x_t)
