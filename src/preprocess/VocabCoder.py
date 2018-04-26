@@ -2,7 +2,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import numpy as np
 
 
-class Vocab:
+class VocabCoder:
 
     def __init__(self, vocab):
         self.vocab = vocab

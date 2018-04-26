@@ -8,7 +8,7 @@ import pycuda.gpuarray
 import numpy as np
 
 
-def modified_gemm_gpu(A, B, C):
+def matmul_gpu(A, B):
     shape = (A.shape[0], B.shape[1])
     api = cluda.cuda_api()
     thr = api.Thread.create()
@@ -18,7 +18,7 @@ def modified_gemm_gpu(A, B, C):
     mulc = mul.compile(thr)
     mulc(res_arr, A, B)
 
-    return res_arr + C
+    return res_arr
 
 
 def tanh_gpu(X):

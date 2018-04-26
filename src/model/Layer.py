@@ -10,10 +10,20 @@ class Layer:
         self.batch_size = batch_size
         self.layer_num = layer_num
 
-        self.state = np.zeros((batch_size, 1)) # state of last cell in layer (Tth cell)
+        self.output = np.zeros((batch_size, 1))
+        self.state = np.zeros((batch_size, 1))  # state of last cell in layer (Tth cell)
 
         self.cells = [Cell(vocab_size, batch_size, (layer_num, i)) for i in range(num_unroll)]
 
     def forward_prop(self, train_input):
-        for cell in self.cells:
-            cell.forward_prop()
+        a = 0
+        c = 0
+        out = [a]
+        for t in range(self.num_unroll):
+            a, c = self.cells[t].forward_prop(a, c, train_input[t])
+            out.append(a)
+
+        self.state = c
+        self.output = out
+
+        return out

@@ -1,13 +1,13 @@
 import unittest
 from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
-from src.preprocess.Vocab import Vocab
+from src.preprocess.VocabCoder import VocabCoder
 
 
 class VocabTestCase(unittest.TestCase):
 
     def test_encoder(self):
         vocab = {"alpha", "beta", "charlie", "delta"}
-        encoder = Vocab(vocab)
+        encoder = VocabCoder(vocab)
         words = ["alpha", "beta", "echo"]
         answer = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]]
         i = 0

@@ -17,7 +17,7 @@ class CudaTestCase(unittest.TestCase):
         A = pycuda.gpuarray.to_gpu(a)
         B = pycuda.gpuarray.to_gpu(b)
         C = pycuda.gpuarray.to_gpu(c)
-        Y = modified_gemm_gpu(A, B, C)
+        Y = matmul_gpu(A, B, C)
 
         y = np.matmul(a, b) + c
 

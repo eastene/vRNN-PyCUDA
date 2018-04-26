@@ -3,7 +3,8 @@ import json
 from src.model.RNN import RNN
 import os
 from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
-from src.preprocess.Vocab import Vocab
+from src.preprocess.VocabCoder import VocabCoder
+from src.preprocess.BatchGenerator import BatchGenerator
 
 # parse single json object at a time
 def parse_file(file):
@@ -11,8 +12,8 @@ def parse_file(file):
         yield json.loads(line)
 
 
-def train(rnn, batch_generator):
-    rnn.train(batch_generator)
+def train(rnn, vocab, text):
+    rnn.train(vocab, text)
 
 
 def run(rnn, seed):
@@ -56,17 +57,23 @@ def main():
                         help='generate article text, requires trained model')
     parser.add_argument('--profile', action='store_true', dest='profile',
                         help='profile training/running RNN model save results to file')
-    parser.add_argument('--vocabsize', dest='vocab_size',
-                        help='specify vocabulary size (default 10000 tokens), only applies when training')
+    parser.add_argument('--vocab-size', dest='vocab_size',
+                        help='specify vocabulary size (default 10000 tokens)')
+    parser.add_argument('--batch-size', dest='batch_size',
+                        help='specify batch size for training (default 50 tokens)')
+    parser.add_argument('--seq-len', dest='seq_len',
+                        help='specify sequence length which is also number of LSTM cell unrollings (default 5)')
+    parser.add_argument('--num-hidden-layers', dest='num_hidden_layers',
+                        help='specify number of hidden layers to use (default 1)')
     parser.add_argument('--seed', dest='seed',
                         help='seed the rnn input for sequence generation')
     parser.add_argument('--force-cpu', action='store-true', dest='force_cpu',
                         help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
-    parser.set_defaults(train=True, profile=False, vocab_size=10000, seed=42, force_cpu=False)
+    parser.set_defaults(train=True, profile=False, vocab_size=10000, batch_size=40, seq_len=5, num_hidden_layers=1, seed=42, force_cpu=False)
 
     args = parser.parse_args()
 
-    rnn = RNN(args.vocab_size, [100, 100])  # vocab size of 10000, 2 hidden layers of size 100
+    rnn = RNN(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers + 2)  # input/output layer required
     if args.train:
         # Step 1: Vocab generation
         print("Generating vocabulary of " + str(args.vocab_size) + " unique tokens.")
@@ -86,9 +93,8 @@ def main():
         normal = normalize(tokens)
 
         # Step 3: Encoding and RNN training
-        encoder = Vocab(vocab)
         print("Beginning training on example dataset")
-        train(rnn, encoder.encode(normal))
+        train(rnn, vocab, normal)
 
     else:
         run(rnn, args.seed)
