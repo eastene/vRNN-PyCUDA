@@ -8,17 +8,16 @@ import pycuda.gpuarray
 import numpy as np
 
 
-def matmul_gpu(A, B):
+def matmul_gpu(A, B, thr):
+
     shape = (A.shape[0], B.shape[1])
-    api = cluda.cuda_api()
-    thr = api.Thread.create()
     res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
 
     mul = MatrixMul(A, B, out_arr=res_arr)
     mulc = mul.compile(thr)
     mulc(res_arr, A, B)
 
-    return res_arr
+    return mulc(res_arr, A, B)
 
 
 def tanh_gpu(X):

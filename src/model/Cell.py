@@ -19,10 +19,10 @@ class Cell:
         self.cell_cords = cell_cords # coordinates of cell in RNN (layer, time)
 
         # layer weights
-        self.Wfx = np.random.uniform(-0.1, 0.1, (batch_size, vocab_size))  # forget gate
-        self.Wix = np.random.uniform(-0.1, 0.1, (batch_size, vocab_size))  # update gate
-        self.Wcx = np.random.uniform(-0.1, 0.1, (batch_size, vocab_size))  # tanh gate
-        self.Wox = np.random.uniform(-0.1, 0.1, (batch_size, vocab_size))  # output gate
+        self.Wfx = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, vocab_size))  # forget gate
+        self.Wix = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, vocab_size))  # update gate
+        self.Wcx = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, vocab_size))  # tanh gate
+        self.Wox = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, vocab_size))  # output gate
 
         self.Wfh = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, self.hidden_state_size))  # forget gate
         self.Wih = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, self.hidden_state_size))  # update gate
@@ -30,10 +30,16 @@ class Cell:
         self.Woh = np.random.uniform(-0.1, 0.1, (self.hidden_state_size, self.hidden_state_size))  # output gate
 
         # biases
-        self.bf = np.zeros((batch_size, 1))  # forget gate
-        self.bi = np.zeros((batch_size, 1))  # update gate
-        self.bc = np.zeros((batch_size, 1))  # tanh gate
-        self.bo = np.zeros((batch_size, 1))  # output gate
+        self.bf = np.zeros((self.hidden_state_size, batch_size))  # forget gate
+        self.bi = np.zeros((self.hidden_state_size, batch_size))  # update gate
+        self.bc = np.zeros((self.hidden_state_size, batch_size))  # tanh gate
+        self.bo = np.zeros((self.hidden_state_size, batch_size))  # output gate
+
+        # internal values
+        self.ft = np.zeros((self.hidden_state_size, batch_size))
+        self.it = np.zeros((self.hidden_state_size, batch_size))
+        self.cct = np.zeros((self.hidden_state_size, batch_size))
+        self.ot = np.zeros((self.hidden_state_size, batch_size))
 
         # used for sanity checking
         self.on_gpu = False
@@ -42,14 +48,14 @@ class Cell:
         # normally would concatenate a and x for efficiency, but for demonstration it is easier to keep separate
 
         # compute internal gate values
-        ft = sigmoid(np.matmul(x_t, self.Wfx) + np.matmul(h_prev, self.Wfh) + self.bf)
-        it = sigmoid(np.matmul(x_t, self.Wix) + np.matmul(h_prev, self.Wih) + self.bi)
-        cct = tanh(np.matmul(x_t, self.Wcx) + np.matmul(h_prev, self.Wch) + self.bc)
-        ot = sigmoid(np.matmul(x_t, self.Wox) + np.matmul(h_prev, self.Woh) + self.bo)
+        self.ft = sigmoid(np.matmul(self.Wfx, x_t) + np.matmul(self.Wfh, h_prev) + self.bf)
+        self.it = sigmoid(np.matmul(self.Wix, x_t) + np.matmul(self.Wih, h_prev) + self.bi)
+        self.cct = tanh(np.matmul(self.Wcx, x_t) + np.matmul(self.Wch, h_prev) + self.bc)
+        self.ot = sigmoid(np.matmul(self.Wox, x_t) + np.matmul(self.Woh, h_prev) + self.bo)
 
         # update next time states
-        c = ft * c_prev + it * cct
-        h = ot * tanh(c)
+        c = self.ft * c_prev + self.it * self.cct
+        h = self.ot * tanh(c)
 
         return h, c
 
@@ -112,6 +118,11 @@ class Cell:
         self.bi_gpu = pycuda.gpuarray.to_gpu(self.bi)
         self.bc_gpu = pycuda.gpuarray.to_gpu(self.bc)
         self.bo_gpu = pycuda.gpuarray.to_gpu(self.bo)
+        # states
+        self.ft_gpu = pycuda.gpuarray.to_gpu(self.ft)
+        self.it_gpu = pycuda.gpuarray.to_gpu(self.it)
+        self.cct_gpu = pycuda.gpuarray.to_gpu(self.ct)
+        self.ot_gpu = pycuda.gpuarray.to_gpu(self.ot)
 
         self.on_gpu = True
 
@@ -133,6 +144,12 @@ class Cell:
             self.bc = self.bc_gpu.get()
             self.bo = self.bo_gpu.get()
 
+            # state
+            self.ft = self.ft_gpu.get()
+            self.it = self.it_gpu.get()
+            self.cct = self.cct_gpu.get()
+            self.ot = self.ot_gpu.get()
+
             # remove
             del self.Wfx_gpu
             del self.Wix_gpu
@@ -146,6 +163,10 @@ class Cell:
             del self.bi_gpu
             del self.bc_gpu
             del self.bo_gpu
+            del self.ft_gpu
+            del self.it_gpu
+            del self.cct_gpu
+            del self.ot_gpu
 
             self.on_gpu = False
         else:
@@ -153,16 +174,56 @@ class Cell:
 
     def forward_prop_gpu(self, c_prev_gpu, h_prev_gpu, x_t_gpu):
         if self.on_gpu:
-            ft_gpu = sigmoid_gpu(matmul_gpu(x_t_gpu, self.Wfx_gpu) + matmul_gpu(h_prev_gpu, self.Wfh_gpu) + self.bf_gpu)
-            it_gpu = sigmoid_gpu(matmul_gpu(x_t_gpu, self.Wix_gpu) + matmul_gpu(h_prev_gpu, self.Wih_gpu) + self.bi_gpu)
-            cct_gpu = tanh_gpu(matmul_gpu(x_t_gpu, self.Wcx_gpu) + matmul_gpu(h_prev_gpu, self.Wch_gpu) + self.bc_gpu)
-            ot_gpu = sigmoid_gpu(matmul_gpu(x_t_gpu, self.Wox_gpu) + matmul_gpu(h_prev_gpu, self.Woh_gpu) + self.bo_gpu)
+            api = cluda.cuda_api()
+            thr = api.Thread.create()
+
+            ftx_gpu = thr.array((self.Wfx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            itx_gpu = thr.array((self.Wix_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            ctx_gpu = thr.array((self.Wcx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            otx_gpu = thr.array((self.Wox_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+
+            mul = MatrixMul(self.Wfx_gpu, x_t_gpu, out_arr=ftx_gpu)
+            mulx = mul.compile(thr)
+            mulx(ftx_gpu, self.Wfx_gpu, x_t_gpu)
+            mulx(itx_gpu, self.Wfx_gpu, x_t_gpu)
+            mulx(ctx_gpu, self.Wfx_gpu, x_t_gpu)
+            mulx(otx_gpu, self.Wfx_gpu, x_t_gpu)
+
+            fth_gpu = thr.array((self.Wfx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            ith_gpu = thr.array((self.Wix_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            cth_gpu = thr.array((self.Wcx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            oth_gpu = thr.array((self.Wox_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+
+            mul = MatrixMul(self.Wfh_gpu, h_prev_gpu, out_arr=fth_gpu)
+            mulh = mul.compile(thr)
+            mulh(fth_gpu, self.Wfh_gpu, h_prev_gpu)
+            mulh(ith_gpu, self.Wih_gpu, h_prev_gpu)
+            mulh(cth_gpu, self.Wch_gpu, h_prev_gpu)
+            mulh(oth_gpu, self.Woh_gpu, h_prev_gpu)
+
+            self.ft_gpu = sigmoid_gpu(ftx_gpu +fth_gpu + self.bf_gpu)
+            self.it_gpu = sigmoid_gpu(itx_gpu + ith_gpu + self.bi_gpu)
+            self.cct_gpu = tanh_gpu(ctx_gpu + cth_gpu + self.bc_gpu)
+            self.ot_gpu = sigmoid_gpu(otx_gpu + oth_gpu + self.bo_gpu)
 
             # update next time states
-            c_gpu = matmul_gpu(ft_gpu, c_prev_gpu) + matmul_gpu(it_gpu, cct_gpu)
-            h_gpu = ot_gpu * tanh_gpu(c_gpu)
+            cf_gpu = thr.array((fth_gpu.shape[0], c_prev_gpu.shape[1]), dtype=np.float64)
+            ci_gpu = thr.array((fth_gpu.shape[0], c_prev_gpu.shape[1]), dtype=np.float64)
+            mul = MatrixMul(self.ft_gpu, c_prev_gpu, out_arr=cf_gpu)
+            mulc = mul.compile(thr)
+            mulc(cf_gpu, self.ft_gpu, c_prev_gpu)
+            mulc(ci_gpu, self.it_gpu, self.cct_gpu)
+
+            c_gpu = cf_gpu + ci_gpu
+
+            ac_gpu = tanh_gpu(c_gpu)
+            h_gpu = thr.array((self.ot_gpu.shape[0], ac_gpu.shape[1]), dtype=np.float64)
+            mul = MatrixMul(self.ft_gpu, c_prev_gpu, out_arr=cf_gpu)
+            mulo = mul.compile(thr)
+            mulo(h_gpu, self.ot_gpu, ac_gpu)
 
             return h_gpu, c_gpu
+
         else:
             raise(GPUException("Cell {0} not found on GPU".format(self.cell_cords)))
 

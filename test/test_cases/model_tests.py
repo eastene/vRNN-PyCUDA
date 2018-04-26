@@ -4,6 +4,7 @@ from src.model.Cell import Cell
 from src.model.RNN import RNN
 
 import pycuda.gpuarray
+from pycuda.tools import mark_cuda_test
 
 class RNNTestCase(unittest.TestCase):
 
@@ -29,16 +30,26 @@ class CellTestCase(unittest.TestCase):
         self.assertListEqual(cell.forward_prop(x_t).tolist(), y_t)
     """
 
+    @mark_cuda_test
     def test_forward_prop_gpu(self):
-        cell = Cell(10, 2, (0,0))
-        gpu_cell = Cell(10, 2, (0,0))
+        vocab =  500
+        cell = Cell(vocab, 2, (0,0))
+        gpu_cell = Cell(vocab, 2, (0,0))
         gpu_cell.cell_to_gpu()
-        x_t = np.zeros((2, 10))
-        x_t[0][5] = 1
-        x_t[1][7] = 1
+        x_t = np.zeros((vocab, 2))
+        h_prev = np.zeros((vocab, 2))
+        c_prev = np.zeros((vocab, 2))
+        x_t[5][0] = 1
+        x_t[7][1] = 1
         x_t_gpu = pycuda.gpuarray.to_gpu(x_t)
+        h_prev_gpu = pycuda.gpuarray.to_gpu(h_prev)
+        c_prev_gpu = pycuda.gpuarray.to_gpu(c_prev)
 
-        h, c = cell.forward_prop(0, 0, x_t)
-        h_gpu, c_gpu = gpu_cell.forward_prop_gpu(0, 0, x_t_gpu)
+        h, c = cell.forward_prop(c_prev, h_prev, x_t)
+        print("CPU done")
+        h_gpu, c_gpu = gpu_cell.forward_prop_gpu(c_prev_gpu, h_prev_gpu, x_t_gpu)
+        gpu_cell.cell_from_gpu()
+        print("GPU Done")
 
-        self.assertListEqual(h.tolist(), h_gpu.get().tolist())
+        for i in range(vocab):
+            self.assertLessEqual(abs(sum(h[i]) - sum(h_gpu[i])), 0.1)

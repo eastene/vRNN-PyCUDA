@@ -30,10 +30,10 @@ class RNN:
         batch_generator = BatchGenerator(text, self.batch_size, self.vocab_size, coder)
         for train, label in batch_generator:
             # forward prop
-            a = self.layers[0].forward_prop(train)
+            h = self.layers[0].forward_prop(train)
             for layer in self.layers[1:]:
-                a = layer.forward_prop(a)
-            yhat_t = softmax(a)
+                h = layer.forward_prop(h)
+            yhat_t = softmax(h)
             # backward prop
 
     def serialize(self):

@@ -6,14 +6,13 @@ from src.preprocess.VocabCoder import VocabCoder
 class VocabTestCase(unittest.TestCase):
 
     def test_encoder(self):
-        vocab = {"alpha", "beta", "charlie", "delta"}
+        vocab = ["alpha", "beta", "charlie", "delta"]
         encoder = VocabCoder(vocab)
         words = ["alpha", "beta", "echo"]
-        answer = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0]]
-        i = 0
-        for enc in encoder.encode(words):
-            self.assertListEqual(enc.tolist(), answer[i])
-            i += 1
+        answer = [0, 1, -1]
+        for i in range(len(words)):
+            enc = encoder.word_2_index(words[i])
+            self.assertEqual(enc, answer[i])
 
 
 class NLPTestCase(unittest.TestCase):

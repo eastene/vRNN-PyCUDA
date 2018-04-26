@@ -12,14 +12,12 @@ class CudaTestCase(unittest.TestCase):
     def test_matmul_gpu(self):
         a = np.random.uniform(0, 10, (10, 5))
         b = np.random.uniform(0, 10, (5, 4))
-        c = np.random.uniform(0, 10, (10, 4))
 
         A = pycuda.gpuarray.to_gpu(a)
         B = pycuda.gpuarray.to_gpu(b)
-        C = pycuda.gpuarray.to_gpu(c)
-        Y = matmul_gpu(A, B, C)
+        Y = matmul_gpu(A, B)
 
-        y = np.matmul(a, b) + c
+        y = np.matmul(a, b)
 
         y_gpu = Y.get()
 

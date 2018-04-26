@@ -16,12 +16,12 @@ class Layer:
         self.cells = [Cell(vocab_size, batch_size, (layer_num, i)) for i in range(num_unroll)]
 
     def forward_prop(self, train_input):
-        a = 0
+        h = 0
         c = 0
-        out = [a]
+        out = [h]
         for t in range(self.num_unroll):
-            a, c = self.cells[t].forward_prop(a, c, train_input[t])
-            out.append(a)
+            h, c = self.cells[t].forward_prop(h, c, train_input[t])
+            out.append(h)
 
         self.state = c
         self.output = out
