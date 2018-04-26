@@ -44,6 +44,26 @@ class Cell:
         # used for sanity checking
         self.on_gpu = False
 
+        # GPU array handles
+        self.Wfx_gpu = None
+        self.Wix_gpu = None
+        self.Wcx_gpu = None
+        self.Wox_gpu = None
+        self.Wfh_gpu = None
+        self.Wih_gpu = None
+        self.Wch_gpu = None
+        self.Woh_gpu = None
+        # biases
+        self.bf_gpu = None
+        self.bi_gpu = None
+        self.bc_gpu = None
+        self.bo_gpu = None
+        # states
+        self.ft_gpu = None
+        self.it_gpu = None
+        self.cct_gpu = None
+        self.ot_gpu = None
+
     def forward_prop(self, c_prev, h_prev, x_t):
         # normally would concatenate a and x for efficiency, but for demonstration it is easier to keep separate
 
@@ -121,7 +141,7 @@ class Cell:
         # states
         self.ft_gpu = pycuda.gpuarray.to_gpu(self.ft)
         self.it_gpu = pycuda.gpuarray.to_gpu(self.it)
-        self.cct_gpu = pycuda.gpuarray.to_gpu(self.ct)
+        self.cct_gpu = pycuda.gpuarray.to_gpu(self.cct)
         self.ot_gpu = pycuda.gpuarray.to_gpu(self.ot)
 
         self.on_gpu = True
@@ -177,7 +197,24 @@ class Cell:
             api = cluda.cuda_api()
             thr = api.Thread.create()
 
-            ftx_gpu = thr.array((self.Wfx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
+            self.ft_gpu = sigmoid_gpu(
+                matmul_gpu(self.Wfx_gpu, x_t_gpu, thr) + matmul_gpu(self.Wfh_gpu, h_prev_gpu, thr) + self.bf_gpu)
+            self.it_gpu = sigmoid_gpu(
+                matmul_gpu(self.Wix_gpu, x_t_gpu, thr) + matmul_gpu(self.Wih_gpu, h_prev_gpu, thr) + self.bi_gpu)
+            self.cct_gpu = tanh_gpu(
+                matmul_gpu(self.Wcx_gpu, x_t_gpu, thr) + matmul_gpu(self.Wch_gpu, h_prev_gpu, thr) + self.bc_gpu)
+            self.ot_gpu = sigmoid_gpu(
+                matmul_gpu(self.Wox_gpu, x_t_gpu, thr) + matmul_gpu(self.Woh_gpu, h_prev_gpu, thr) + self.bo_gpu)
+
+            c_gpu = matmul_gpu(self.ft_gpu, c_prev_gpu, thr) + matmul_gpu(self.it_gpu, self.cct_gpu, thr)
+
+            ac_gpu = tanh_gpu(c_gpu)
+            h_gpu = thr.array((self.ot_gpu.shape[0], ac_gpu.shape[1]), dtype=np.float64)
+            mul = MatrixMul(self.ft_gpu, c_prev_gpu, out_arr=cf_gpu)
+            mulo = mul.compile(thr)
+            mulo(h_gpu, self.ot_gpu, ac_gpu)
+
+            """ftx_gpu = thr.array((self.Wfx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
             itx_gpu = thr.array((self.Wix_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
             ctx_gpu = thr.array((self.Wcx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
             otx_gpu = thr.array((self.Wox_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
@@ -222,7 +259,7 @@ class Cell:
             mulo = mul.compile(thr)
             mulo(h_gpu, self.ot_gpu, ac_gpu)
 
-            return h_gpu, c_gpu
+            return h_gpu, c_gpu """
 
         else:
             raise(GPUException("Cell {0} not found on GPU".format(self.cell_cords)))

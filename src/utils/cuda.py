@@ -17,7 +17,7 @@ def matmul_gpu(A, B, thr):
     mulc = mul.compile(thr)
     mulc(res_arr, A, B)
 
-    return mulc(res_arr, A, B)
+    return res_arr
 
 
 def tanh_gpu(X):
