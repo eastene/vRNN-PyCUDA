@@ -8,7 +8,8 @@ FROM: Coursera
 import numpy as np
 from src.utils.activations import *
 
-def lstm_cell_forward(xt, a_prev, c_prev, parameters, on_gpu):
+
+def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """
     Implement a single forward step of the LSTM-cell as described in Figure (4)
 
@@ -55,20 +56,20 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters, on_gpu):
     n_y, n_a = Wy.shape
 
     # Concatenate a_prev and xt (≈3 lines)
-    concat = np.zeros((n_a + n_x), m)
+    concat = np.zeros(((n_a + n_x), m))
     concat[: n_a, :] = a_prev
     concat[n_a:, :] = xt
 
     # Compute values for ft, it, cct, c_next, ot, a_next using the formulas given figure (4) (≈6 lines)
     ft = sigmoid(np.matmul(Wf, concat) + bf)
     it = sigmoid(np.matmul(Wi, concat) + bi)
-    cct = tanh(np.matmul(Wc, concat) + bc)
-    c_next = np.matmul(ft, c_prev) + np.matmul(it, cct)
+    cct = np.tanh(np.matmul(Wc, concat) + bc)
+    c_next = ft * c_prev + it * cct
     ot = sigmoid(np.matmul(Wo, concat) + bo)
-    a_next = np.matmul(ot, tanh(c_next))
+    a_next = ot * np.tanh(c_next)
 
     # Compute prediction of the LSTM cell (≈1 line)
-    yt_pred = None
+    yt_pred = softmax(np.matmul(Wy, a_next) + by)
     ### END CODE HERE ###
 
     # store values needed for backward propagation in cache

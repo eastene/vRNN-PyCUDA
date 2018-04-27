@@ -1,6 +1,6 @@
 import argparse
 import json
-from src.model.RNN import RNN
+from src.model.LSTM import RNN
 import os
 from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
 from src.preprocess.VocabCoder import VocabCoder
