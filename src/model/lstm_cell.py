@@ -110,31 +110,26 @@ def lstm_cell_backward(da_next, dc_next, cache):
     n_a, m = a_next.shape
 
     # Compute gates related derivatives, you can find their values can be found by looking carefully at equations (7) to (10) (≈4 lines)
-    dot = da_next * tanh(c_next)
-    dcct = None
-    dit = None
-    dft = None
-
-    # Code equations (7) to (10) (≈4 lines)
-    dit = None
-    dft = None
-    dot = None
-    dcct = None
+    dot = da_next * tanh(c_next) * ot * (1 - ot)
+    dcct = dc_next * it + ot * (1 - tanh(c_next)**2)
+    dit = dc_next * cct + ot * (1-tanh(c_next)**2) * cct * da_next * it * (1 - it)
+    dft = dc_next * c_prev + ot * (1-tanh(c_next)**2) * c_prev * da_next * ft * (1-ft)
 
     # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
-    dWf = None
-    dWi = None
-    dWc = None
-    dWo = None
-    dbf = None
-    dbi = None
-    dbc = None
-    dbo = None
+    dWf = np.dot (dft * concat.T)
+    dWi = np.dot(dit * concat.T)
+    dWc = np.dot(dcct * concat.T)
+    dWo = np.dot(dot * concat.T)
+    dbf = np.sum(dft, axis=1 ,keepdims = True)
+    dbi = np.sum(dit, axis=1, keepdims = True)
+    dbc = np.sum(dcct, axis=1,  keepdims = True)
+    dbo = np.sum(dot, axis=1, keepdims = True)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input. Use equations (15)-(17). (≈3 lines)
-    da_prev = None
-    dc_prev = None
-    dxt = None
+    da_prev =  np.dot(parameters['Wf'][:n_a,:].T ,dft) + np.dot(parameters['Wi'][:, :n_a].T, dit) + np.dot(parameters['Wc'][:, :n_a].T, dcct) + np.dot(parameters['Wo'][:, :n_a].T, dot) 
+    dc_prev =  dc_next * ft + ot * (1 - np.square(np.tanh(c_next))) * ft * da_next
+    dxt = np.dot(parameters['Wf'][:, n_a:].T, dft) + np.dot(parameters['Wi'][:, n_a:].T, dit) + np.dot(parameters['Wc'][:, n_a:].T, dcct) + np.dot(parameters['Wo'][:, n_a:].T, dot)
+    
     ### END CODE HERE ###
 
     # Save gradients in dictionary
