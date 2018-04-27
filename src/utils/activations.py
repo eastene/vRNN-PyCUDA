@@ -14,6 +14,6 @@ def tanh(X):
 
 
 def softmax(X):
-    s = sum(list(map(lambda x: math.exp(x), X)))
-    func = np.vectorize(lambda x: math.exp(x) / s)
-    return func(X)
+    #s = sum(list(map(lambda x: math.exp(x), X)))
+    #func = np.vectorize(lambda x: math.exp(x) / s)
+    return extmath.softmax(X)

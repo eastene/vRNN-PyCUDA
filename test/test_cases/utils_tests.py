@@ -10,12 +10,15 @@ class CudaTestCase(unittest.TestCase):
 
     @mark_cuda_test
     def test_matmul_gpu(self):
+        api = cluda.cuda_api()
+        thr = api.Thread.create()
+
         a = np.random.uniform(0, 10, (10, 5))
         b = np.random.uniform(0, 10, (5, 4))
 
         A = pycuda.gpuarray.to_gpu(a)
         B = pycuda.gpuarray.to_gpu(b)
-        Y = matmul_gpu(A, B)
+        Y = matmul_gpu(A, B, thr)
 
         y = np.matmul(a, b)
 

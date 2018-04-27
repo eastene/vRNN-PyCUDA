@@ -137,13 +137,16 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     concat[: n_a, :] = a_prev
     concat[n_a:, :] = xt
 
-    # Compute values for ft, it, cct, c_next, ot, a_next using the formulas given figure (4) (≈6 lines)
+    concat = pycuda.gpuarray.to_gpu(concat)
+    c_prev = pycuda.gpuarray.to_gpu(c_prev)
+
+    # Compute values for ft, it, cct, c_next, ot, a_next
     ft = sigmoid_gpu(matmul_gpu(Wf, concat, thr) + bf)
     it = sigmoid_gpu(matmul_gpu(Wi, concat, thr) + bi)
     cct = tanh_gpu(matmul_gpu(Wc, concat, thr) + bc)
-    c_next = ft * c_prev + it * cct
+    c_next = matmul_gpu(ft, c_prev, thr) + matmul_gpu(it, cct, thr)
     ot = sigmoid_gpu(matmul_gpu(Wo, concat, thr) + bo)
-    a_next = ot * np.tanh(c_next)
+    a_next = matmul_gpu(ot, tanh_gpu(c_next), thr)
 
     # Compute prediction of the LSTM cell (≈1 line)
     yt_pred = softmax_gpu(matmul_gpu(Wy, a_next, thr) + by)

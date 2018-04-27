@@ -25,20 +25,32 @@ class RNNTestCase(unittest.TestCase):
 class LstmLayerTestCase(unittest.TestCase):
 
     @mark_cuda_test
+    def test_add(self):
+        np.random.seed(1)
+        Wy = np.random.randn(2, 10)
+        by = np.random.randn(2, 10)
+
+        Wy_gpu = pycuda.gpuarray.to_gpu(Wy)
+        by_gpu = pycuda.gpuarray.to_gpu(by)
+
+        print(Wy + by)
+        print((Wy_gpu + by_gpu).get())
+
+    @mark_cuda_test
     def test_forward_prop(self):
         np.random.seed(1)
-        x = np.random.randn(3, 10, 7)
+        x = np.random.randn(3, 10)
         a0 = np.random.randn(5, 10)
         Wf = np.random.randn(5, 5 + 3)
-        bf = np.random.randn(5, 1)
+        bf = np.random.randn(5, 10)
         Wi = np.random.randn(5, 5 + 3)
-        bi = np.random.randn(5, 1)
+        bi = np.random.randn(5, 10)
         Wo = np.random.randn(5, 5 + 3)
-        bo = np.random.randn(5, 1)
+        bo = np.random.randn(5, 10)
         Wc = np.random.randn(5, 5 + 3)
-        bc = np.random.randn(5, 1)
+        bc = np.random.randn(5, 10)
         Wy = np.random.randn(2, 5)
-        by = np.random.randn(2, 1)
+        by = np.random.randn(2, 10)
 
         parameters = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "Wy": Wy, "bf": bf, "bi": bi, "bo": bo, "bc": bc,
                       "by": by}
@@ -57,9 +69,13 @@ class LstmLayerTestCase(unittest.TestCase):
         parameters_gpu = {"Wf": Wf_gpu, "Wi": Wi_gpu, "Wo": Wo_gpu, "Wc": Wc_gpu, "Wy": Wy_gpu, "bf": bf_gpu, "bi": bi_gpu, "bo": bo_gpu, "bc": bc_gpu,
                       "by": by_gpu}
 
-        a, y, c, caches = lstm_forward(x, a0, parameters, False)
+        a, y, c, caches = lstm_cell_forward(x, a0, a0, parameters)
+        print("CPU DONE")
+        a_gpu, y_gpu, c, caches = lstm_cell_forward_gpu(x, a0, a0, parameters_gpu)
+        print("GPU DONE")
 
-        a, y, c, caches = lstm_forward(x, a0, parameters_gpu, True)
+        print(a)
+        print(a_gpu.get())
 
 
 class CellTestCase(unittest.TestCase):
