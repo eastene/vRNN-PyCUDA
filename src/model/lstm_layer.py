@@ -67,8 +67,8 @@ def lstm_forward(x, a0, parameters, on_gpu):
 
     return a, y, c, caches
 
-
 def lstm_backward(da, caches):
+    
     """
     Implement the backward pass for the RNN with LSTM-cell (over a whole sequence).
 
@@ -91,49 +91,50 @@ def lstm_backward(da, caches):
                         dbo -- Gradient w.r.t. biases of the save gate, of shape (n_a, 1)
     """
 
-    # Retrieve values from the first cache (t=1) of caches.
+   # Retrieve values from the first cache (t=1) of caches.
     (caches, x) = caches
     (a1, c1, a0, c0, f1, i1, cc1, o1, x1, parameters) = caches[0]
-
+    
+    ### START CODE HERE ###
     # Retrieve dimensions from da's and x1's shapes (≈2 lines)
     n_a, m, T_x = da.shape
     n_x, m = x1.shape
-
+    
     # initialize the gradients with the right sizes (≈12 lines)
-    dx = np.zeros(n_x, m, T_x)
-    da0 = np.zeros(n_a, m)
-    da_prevt = np.zeros(n_a, m)
-    dc_prevt = np.zeros(n_a, m)
-    dWf = np.zeros(n_a, n_a + n_x)
-    dWi = np.zeros(n_a, n_a + n_x)
-    dWc = np.zeros(n_a, n_a + n_x)
-    dWo = np.zeros(n_a, n_a + n_x)
-    dbf = np.zeros(n_a, 1)
-    dbi = np.zeros(n_a, 1)
-    dbc = np.zeros(n_a, 1)
-    dbo = np.zeros(n_a, 1)
-
+    dx = np.zeros((n_x, m, T_x))
+    da0 = np.zeros((n_a, m))
+    da_prevt = np.zeros(da0.shape)
+    dc_prevt = np.zeros(da0.shape)
+    dWf = np.zeros((n_a, n_a + n_x))
+    dWi = np.zeros(dWf.shape)
+    dWc = np.zeros(dWf.shape)
+    dWo = np.zeros(dWf.shape)
+    dbf = np.zeros((n_a, 1))
+    dbi = np.zeros(dbf.shape)
+    dbc = np.zeros(dbf.shape)
+    dbo = np.zeros(dbf.shape)
+    
     # loop back over the whole sequence
     for t in reversed(range(T_x)):
         # Compute all gradients using lstm_cell_backward
-        gradients = lstm_cell_backward(da0, )
+        gradients = lstm_cell_backward(da[:, :, t], dc_prevt, caches[t])
         # Store or add the gradient to the parameters' previous step's gradient
-        dx[:, :, t] = None
-        dWf = None
-        dWi = None
-        dWc = None
-        dWo = None
-        dbf = None
-        dbi = None
-        dbc = None
-        dbo = None
+        dx[:,:,t] = gradients["dxt"]
+        dWf += gradients["dWf"]
+        dWi += gradients["dWi"]
+        dWc += gradients["dWc"]
+        dWo += gradients["dWo"]
+        dbf += gradients["dbf"]
+        dbi += gradients["dbi"]
+        dbc += gradients["dbc"]
+        dbo += gradients["dbo"]
     # Set the first activation's gradient to the backpropagated gradient da_prev.
-    da0 = None
-
+    da0 = gradients["da_prev"]
+    
     ### END CODE HERE ###
 
     # Store the gradients in a python dictionary
-    gradients = {"dx": dx, "da0": da0, "dWf": dWf, "dbf": dbf, "dWi": dWi, "dbi": dbi,
-                 "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
-
-    return gradients
+    gradients = {"dx": dx, "da0": da0, "dWf": dWf,"dbf": dbf, "dWi": dWi,"dbi": dbi,
+                "dWc": dWc,"dbc": dbc, "dWo": dWo,"dbo": dbo}
+    
+    return gradients    
