@@ -123,28 +123,31 @@ class Cell:
         pass
 
     def cell_to_gpu(self):
-        # alloc on and copy to GPU using GPUArrays doc: https://documen.tician.de/pycuda/array.html
-        # weights
-        self.Wfx_gpu = pycuda.gpuarray.to_gpu(self.Wfx)
-        self.Wix_gpu = pycuda.gpuarray.to_gpu(self.Wix)
-        self.Wcx_gpu = pycuda.gpuarray.to_gpu(self.Wcx)
-        self.Wox_gpu = pycuda.gpuarray.to_gpu(self.Wox)
-        self.Wfh_gpu = pycuda.gpuarray.to_gpu(self.Wfh)
-        self.Wih_gpu = pycuda.gpuarray.to_gpu(self.Wih)
-        self.Wch_gpu = pycuda.gpuarray.to_gpu(self.Wch)
-        self.Woh_gpu = pycuda.gpuarray.to_gpu(self.Woh)
-        # biases
-        self.bf_gpu = pycuda.gpuarray.to_gpu(self.bf)
-        self.bi_gpu = pycuda.gpuarray.to_gpu(self.bi)
-        self.bc_gpu = pycuda.gpuarray.to_gpu(self.bc)
-        self.bo_gpu = pycuda.gpuarray.to_gpu(self.bo)
-        # states
-        self.ft_gpu = pycuda.gpuarray.to_gpu(self.ft)
-        self.it_gpu = pycuda.gpuarray.to_gpu(self.it)
-        self.cct_gpu = pycuda.gpuarray.to_gpu(self.cct)
-        self.ot_gpu = pycuda.gpuarray.to_gpu(self.ot)
+        if not self.on_gpu:
+            # alloc on and copy to GPU using GPUArrays doc: https://documen.tician.de/pycuda/array.html
+            # weights
+            self.Wfx_gpu = pycuda.gpuarray.to_gpu(self.Wfx)
+            self.Wix_gpu = pycuda.gpuarray.to_gpu(self.Wix)
+            self.Wcx_gpu = pycuda.gpuarray.to_gpu(self.Wcx)
+            self.Wox_gpu = pycuda.gpuarray.to_gpu(self.Wox)
+            self.Wfh_gpu = pycuda.gpuarray.to_gpu(self.Wfh)
+            self.Wih_gpu = pycuda.gpuarray.to_gpu(self.Wih)
+            self.Wch_gpu = pycuda.gpuarray.to_gpu(self.Wch)
+            self.Woh_gpu = pycuda.gpuarray.to_gpu(self.Woh)
+            # biases
+            self.bf_gpu = pycuda.gpuarray.to_gpu(self.bf)
+            self.bi_gpu = pycuda.gpuarray.to_gpu(self.bi)
+            self.bc_gpu = pycuda.gpuarray.to_gpu(self.bc)
+            self.bo_gpu = pycuda.gpuarray.to_gpu(self.bo)
+            # states
+            self.ft_gpu = pycuda.gpuarray.to_gpu(self.ft)
+            self.it_gpu = pycuda.gpuarray.to_gpu(self.it)
+            self.cct_gpu = pycuda.gpuarray.to_gpu(self.cct)
+            self.ot_gpu = pycuda.gpuarray.to_gpu(self.ot)
 
-        self.on_gpu = True
+            self.on_gpu = True
+        else:
+            raise(GPUException("Cell {0} already on GPU".format(self.cell_cords)))
 
     def cell_from_gpu(self):
         if self.on_gpu:
@@ -207,59 +210,9 @@ class Cell:
                 matmul_gpu(self.Wox_gpu, x_t_gpu, thr) + matmul_gpu(self.Woh_gpu, h_prev_gpu, thr) + self.bo_gpu)
 
             c_gpu = matmul_gpu(self.ft_gpu, c_prev_gpu, thr) + matmul_gpu(self.it_gpu, self.cct_gpu, thr)
+            h_gpu = matmul_gpu(self.ot_gpu, tanh_gpu(c_gpu), thr)
 
-            ac_gpu = tanh_gpu(c_gpu)
-            h_gpu = thr.array((self.ot_gpu.shape[0], ac_gpu.shape[1]), dtype=np.float64)
-            mul = MatrixMul(self.ft_gpu, c_prev_gpu, out_arr=cf_gpu)
-            mulo = mul.compile(thr)
-            mulo(h_gpu, self.ot_gpu, ac_gpu)
-
-            """ftx_gpu = thr.array((self.Wfx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-            itx_gpu = thr.array((self.Wix_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-            ctx_gpu = thr.array((self.Wcx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-            otx_gpu = thr.array((self.Wox_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-
-            mul = MatrixMul(self.Wfx_gpu, x_t_gpu, out_arr=ftx_gpu)
-            mulx = mul.compile(thr)
-            mulx(ftx_gpu, self.Wfx_gpu, x_t_gpu)
-            mulx(itx_gpu, self.Wfx_gpu, x_t_gpu)
-            mulx(ctx_gpu, self.Wfx_gpu, x_t_gpu)
-            mulx(otx_gpu, self.Wfx_gpu, x_t_gpu)
-
-            fth_gpu = thr.array((self.Wfx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-            ith_gpu = thr.array((self.Wix_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-            cth_gpu = thr.array((self.Wcx_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-            oth_gpu = thr.array((self.Wox_gpu.shape[0], x_t_gpu.shape[1]), dtype=np.float64)
-
-            mul = MatrixMul(self.Wfh_gpu, h_prev_gpu, out_arr=fth_gpu)
-            mulh = mul.compile(thr)
-            mulh(fth_gpu, self.Wfh_gpu, h_prev_gpu)
-            mulh(ith_gpu, self.Wih_gpu, h_prev_gpu)
-            mulh(cth_gpu, self.Wch_gpu, h_prev_gpu)
-            mulh(oth_gpu, self.Woh_gpu, h_prev_gpu)
-
-            self.ft_gpu = sigmoid_gpu(ftx_gpu +fth_gpu + self.bf_gpu)
-            self.it_gpu = sigmoid_gpu(itx_gpu + ith_gpu + self.bi_gpu)
-            self.cct_gpu = tanh_gpu(ctx_gpu + cth_gpu + self.bc_gpu)
-            self.ot_gpu = sigmoid_gpu(otx_gpu + oth_gpu + self.bo_gpu)
-
-            # update next time states
-            cf_gpu = thr.array((fth_gpu.shape[0], c_prev_gpu.shape[1]), dtype=np.float64)
-            ci_gpu = thr.array((fth_gpu.shape[0], c_prev_gpu.shape[1]), dtype=np.float64)
-            mul = MatrixMul(self.ft_gpu, c_prev_gpu, out_arr=cf_gpu)
-            mulc = mul.compile(thr)
-            mulc(cf_gpu, self.ft_gpu, c_prev_gpu)
-            mulc(ci_gpu, self.it_gpu, self.cct_gpu)
-
-            c_gpu = cf_gpu + ci_gpu
-
-            ac_gpu = tanh_gpu(c_gpu)
-            h_gpu = thr.array((self.ot_gpu.shape[0], ac_gpu.shape[1]), dtype=np.float64)
-            mul = MatrixMul(self.ft_gpu, c_prev_gpu, out_arr=cf_gpu)
-            mulo = mul.compile(thr)
-            mulo(h_gpu, self.ot_gpu, ac_gpu)
-
-            return h_gpu, c_gpu """
+            return h_gpu, c_gpu
 
         else:
             raise(GPUException("Cell {0} not found on GPU".format(self.cell_cords)))
