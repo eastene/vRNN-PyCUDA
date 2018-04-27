@@ -101,40 +101,46 @@ def lstm_cell_backward(da_next, dc_next, cache):
                         dbo -- Gradient w.r.t. biases of the output gate, of shape (n_a, 1)
     """
 
-    # Retrieve information from "cache"
+    
+     # Retrieve information from "cache"
     (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters) = cache
-
+    
     ### START CODE HERE ###
     # Retrieve dimensions from xt's and a_next's shape (≈2 lines)
     n_x, m = xt.shape
     n_a, m = a_next.shape
-
-    concat = np.concatenate((a_prev, xt), axis=0)
+    
     # Compute gates related derivatives, you can find their values can be found by looking carefully at equations (7) to (10) (≈4 lines)
     dot = da_next * np.tanh(c_next) * ot * (1 - ot)
     dcct = (dc_next * it + ot * (1 - np.square(np.tanh(c_next))) * it * da_next) * (1 - np.square(cct))
     dit = (dc_next * cct + ot * (1 - np.square(np.tanh(c_next))) * cct * da_next) * it * (1 - it)
     dft = (dc_next * c_prev + ot *(1 - np.square(np.tanh(c_next))) * c_prev * da_next) * ft * (1 - ft)
+    
+    # Code equations (7) to (10) (≈4 lines)
+    ##dit = None
+    ##dft = None
+    ##dot = None
+    ##dcct = None
+    concat = np.concatenate((a_prev, xt), axis=0)
 
     # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
-    dWf = np.dot (dft * concat.T)
-    dWi = np.dot(dit * concat.T)
-    dWc = np.dot(dcct * concat.T)
-    dWo = np.dot(dot * concat.T)
+    dWf = np.dot(dft, concat.T)
+    dWi = np.dot(dit, concat.T)
+    dWc = np.dot(dcct, concat.T)
+    dWo = np.dot(dot, concat.T)
     dbf = np.sum(dft, axis=1 ,keepdims = True)
     dbi = np.sum(dit, axis=1, keepdims = True)
     dbc = np.sum(dcct, axis=1,  keepdims = True)
     dbo = np.sum(dot, axis=1, keepdims = True)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input. Use equations (15)-(17). (≈3 lines)
-    da_prev =  np.dot(parameters['Wf'][:n_a,:].T ,dft) + np.dot(parameters['Wi'][:, :n_a].T, dit) + np.dot(parameters['Wc'][:, :n_a].T, dcct) + np.dot(parameters['Wo'][:, :n_a].T, dot) 
-    dc_prev =  dc_next * ft + ot * (1 - np.square(np.tanh(c_next))) * ft * da_next
+    da_prev = np.dot(parameters['Wf'][:, :n_a].T, dft) + np.dot(parameters['Wi'][:, :n_a].T, dit) + np.dot(parameters['Wc'][:, :n_a].T, dcct) + np.dot(parameters['Wo'][:, :n_a].T, dot)
+    dc_prev = dc_next * ft + ot * (1 - np.square(np.tanh(c_next))) * ft * da_next
     dxt = np.dot(parameters['Wf'][:, n_a:].T, dft) + np.dot(parameters['Wi'][:, n_a:].T, dit) + np.dot(parameters['Wc'][:, n_a:].T, dcct) + np.dot(parameters['Wo'][:, n_a:].T, dot)
-    
     ### END CODE HERE ###
-
+    
     # Save gradients in dictionary
-    gradients = {"dxt": dxt, "da_prev": da_prev, "dc_prev": dc_prev, "dWf": dWf, "dbf": dbf, "dWi": dWi, "dbi": dbi,
-                 "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
+    gradients = {"dxt": dxt, "da_prev": da_prev, "dc_prev": dc_prev, "dWf": dWf,"dbf": dbf, "dWi": dWi,"dbi": dbi,
+                "dWc": dWc,"dbc": dbc, "dWo": dWo,"dbo": dbo}
 
     return gradients
