@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from src.model.Cell import Cell
-from src.model.RNN import RNN
+from src.model.LSTM import RNN
 
 import pycuda.gpuarray
 from pycuda.tools import mark_cuda_test

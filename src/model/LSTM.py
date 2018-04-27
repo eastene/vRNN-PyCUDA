@@ -12,16 +12,7 @@ class RNN:
         self.batch_size = batch_size
         self.num_layers = num_layers
 
-        self.layers = [Layer(num_unroll, vocab_size, batch_size, i) for i in range(num_layers)]
-
-    def __repr__(self):
-        num_layers = 1 + len(self.hidden_layers) + 1
-        rep = "{0} layers: \n".format(num_layers)
-        rep += "  Input layer of size {0}\n".format(self.input_layer)
-        for layer in self.hidden_layers:
-            rep += "  Hidden layer of size {0}\n".format(layer)
-        rep += "  Output layer of size {0}\n".format(self.output_layer)
-        return rep
+        self.layer_caches = []
 
     def train(self, vocab, text):
         coder = VocabCoder(vocab)
