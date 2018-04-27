@@ -7,11 +7,16 @@ FROM: Coursera
 
 import numpy as np
 from src.utils.activations import *
+from src.utils.cuda import *
+
+import pycuda.driver as cuda
+import pycuda.autoinit
+import pycuda.gpuarray
 
 
 def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """
-    Implement a single forward step of the LSTM-cell as described in Figure (4)
+    Implement a single forward step of the LSTM-cell
 
     Arguments:
     xt -- your input data at timestep "t", numpy array of shape (n_x, m).
@@ -71,6 +76,77 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     # Compute prediction of the LSTM cell (≈1 line)
     yt_pred = softmax(np.matmul(Wy, a_next) + by)
     ### END CODE HERE ###
+
+    # store values needed for backward propagation in cache
+    cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
+
+    return a_next, c_next, yt_pred, cache
+
+
+def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
+    """
+    Implement a single forward step of the LSTM-cell using PyCUDA
+
+    Arguments:
+    xt -- your input data at timestep "t", numpy array of shape (n_x, m).
+    a_prev -- Hidden state at timestep "t-1", numpy array of shape (n_a, m)
+    c_prev -- Memory state at timestep "t-1", numpy array of shape (n_a, m)
+    parameters -- python dictionary containing:
+                        Wf -- Weight matrix of the forget gate, numpy array of shape (n_a, n_a + n_x)
+                        bf -- Bias of the forget gate, numpy array of shape (n_a, 1)
+                        Wi -- Weight matrix of the update gate, numpy array of shape (n_a, n_a + n_x)
+                        bi -- Bias of the update gate, numpy array of shape (n_a, 1)
+                        Wc -- Weight matrix of the first "tanh", numpy array of shape (n_a, n_a + n_x)
+                        bc --  Bias of the first "tanh", numpy array of shape (n_a, 1)
+                        Wo -- Weight matrix of the output gate, numpy array of shape (n_a, n_a + n_x)
+                        bo --  Bias of the output gate, numpy array of shape (n_a, 1)
+                        Wy -- Weight matrix relating the hidden-state to the output, numpy array of shape (n_y, n_a)
+                        by -- Bias relating the hidden-state to the output, numpy array of shape (n_y, 1)
+
+    Returns:
+    a_next -- next hidden state, of shape (n_a, m)
+    c_next -- next memory state, of shape (n_a, m)
+    yt_pred -- prediction at timestep "t", numpy array of shape (n_y, m)
+    cache -- tuple of values needed for the backward pass, contains (a_next, c_next, a_prev, c_prev, xt, parameters)
+
+    Note: ft/it/ot stand for the forget/update/output gates, cct stands for the candidate value (c tilde),
+          c stands for the memory value
+    """
+
+    api = cluda.cuda_api()
+    thr = api.Thread.create()
+
+    # Retrieve parameters from "parameters"
+    Wf = parameters["Wf"]
+    bf = parameters["bf"]
+    Wi = parameters["Wi"]
+    bi = parameters["bi"]
+    Wc = parameters["Wc"]
+    bc = parameters["bc"]
+    Wo = parameters["Wo"]
+    bo = parameters["bo"]
+    Wy = parameters["Wy"]
+    by = parameters["by"]
+
+    # Retrieve dimensions from shapes of xt and Wy
+    n_x, m = xt.shape
+    n_y, n_a = Wy.shape
+
+    # Concatenate a_prev and xt (≈3 lines)
+    concat = np.zeros(((n_a + n_x), m))
+    concat[: n_a, :] = a_prev
+    concat[n_a:, :] = xt
+
+    # Compute values for ft, it, cct, c_next, ot, a_next using the formulas given figure (4) (≈6 lines)
+    ft = sigmoid_gpu(matmul_gpu(Wf, concat, thr) + bf)
+    it = sigmoid_gpu(matmul_gpu(Wi, concat, thr) + bi)
+    cct = tanh_gpu(matmul_gpu(Wc, concat, thr) + bc)
+    c_next = ft * c_prev + it * cct
+    ot = sigmoid_gpu(matmul_gpu(Wo, concat, thr) + bo)
+    a_next = ot * np.tanh(c_next)
+
+    # Compute prediction of the LSTM cell (≈1 line)
+    yt_pred = softmax_gpu(matmul_gpu(Wy, a_next, thr) + by)
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
