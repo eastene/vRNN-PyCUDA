@@ -32,13 +32,14 @@ class CellTestCase(unittest.TestCase):
 
     @mark_cuda_test
     def test_forward_prop_gpu(self):
-        vocab =  500
-        cell = Cell(vocab, 2, (0,0))
-        gpu_cell = Cell(vocab, 2, (0,0))
+        vocab = 10
+        batches = 2
+        cell = Cell(vocab, batches, (0,0))
+        gpu_cell = Cell(vocab, batches, (0,0))
         gpu_cell.cell_to_gpu()
-        x_t = np.zeros((vocab, 2))
-        h_prev = np.zeros((vocab, 2))
-        c_prev = np.zeros((vocab, 2))
+        x_t = np.zeros((vocab, batches))
+        h_prev = np.zeros((vocab, batches))
+        c_prev = np.zeros((vocab, batches))
         x_t[5][0] = 1
         x_t[7][1] = 1
         x_t_gpu = pycuda.gpuarray.to_gpu(x_t)
@@ -51,5 +52,8 @@ class CellTestCase(unittest.TestCase):
         gpu_cell.cell_from_gpu()
         print("GPU Done")
 
-        for i in range(vocab):
-            self.assertLessEqual(abs(sum(h[i]) - sum(h_gpu[i])), 0.1)
+        h_gpu_mem = h_gpu.get()
+
+        for j in range(batches):
+            for i in range(vocab):
+                self.assertLessEqual(abs(h[i][j] - h_gpu_mem[i][j]), 0.25)
