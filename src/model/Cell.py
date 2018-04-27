@@ -41,6 +41,15 @@ class Cell:
         self.cct = np.zeros((self.hidden_state_size, batch_size))
         self.ot = np.zeros((self.hidden_state_size, batch_size))
 
+        # previous states
+        self.h_prev = np.zeros(self.hidden_state_size, self.batch_size)
+        self.c_prev = np.zeros(self.hidden_state_size, self.batch_size)
+        self.x_t = np.zeros(self.hidden_state_size, self.batch_size)
+
+        # current states
+        self.h = np.zeros(self.hidden_state_size, self.batch_size)
+        self.c = np.zeros(self.hidden_state_size, self.batch_size)
+
         # used for sanity checking
         self.on_gpu = False
 
@@ -77,44 +86,36 @@ class Cell:
         c = self.ft * c_prev + self.it * self.cct
         h = self.ot * tanh(c)
 
+
         return h, c
 
-    def backward_prop(self):
-        
-        """
-        dx = np.zeros((self.input_size,m,self.hidden_layers))
-        da0 = np.zeros((n_a, m))
-        da_prevt = np.zeros(da0.shape)
-        dc_prevt = np.zeros(da0.shape)
-        dWf = np.zeros((n_a, n_a + input_size))
-        dWi = np.zeros(dWf.shape)
-        dWc = np.zeros(dWf.shape)
-        dWo = np.zeros(dWf.shape)
-        dbf = np.zeros((n_a, 1))
-        dbi = np.zeros(dbf.shape)
-        dbc = np.zeros(dbf.shape)
-        dbo = np.zeros(dbf.shape)
-        """
-        #compute derivates of the gates
-        dot = self.a * tanh(self.c) * ot * (1 - ot)
-        dcct = (self.c * it + ot * (1 - np.square(tanh(self.c))) * it * self.a) * (1 - np.square(cct))
-        dit = (self.c * cct + ot * (1 - np.square(tanh(self.c))) * cct * self.a) * it * (1 - it)
-        dft = (self.c * self.c + ot *(1 - np.square(tanh(self.c))) * self.c * self.a) * ft * (1 - ft)
+    def backward_prop(self, da_next, dc_next):
 
-        # compute parameters  derivatives
-        dWf = np.dot(dft, concat.T)
-        dWi = np.dot(dit, concat.T)
-        dWc = np.dot(dcct, concat.T)
-        dWo = np.dot(dot, concat.T)
-        dbf = np.sum(dft, axis=1 ,keepdims = True)
-        dbi = np.sum(dit, axis=1, keepdims = True)
-        dbc = np.sum(dcct, axis=1,  keepdims = True)
-        dbo = np.sum(dot, axis=1, keepdims = True)
-        
-        #compute derivatives with respect to previous hidden state,memory and input.
-        da_prev = np.dot(Wf[:, :layer_size].T,df)+np.dot(Wi[:, :layer_size],dit)+ np.dot(Wc[:, :layer_size].T, dcct) + np.dot(Wo[:, :layer_size].T, dot)
-        dc_prev = self.c * ft + ot * (1 - np.square(tanh(c_next))) * ft * self.a
-        dxt = np.dot(Wf[:, layer_size:].T, dft) + np.dot(Wi[:, layer_size:].T, dit) + np.dot(Wc[:, layer_size:].T, dcct) + np.dot(Wo[:, layer_size:].T, dot)
+        dot = da_next * tanh(self.c) * self.ot * (1 - self.ot)
+        dcct = dc_next * self.it + self.ot * (1 - tanh(self.c)**2) * self.it * da_next
+        dit = None
+        dft = None
+
+        # Code equations (7) to (10) (≈4 lines)
+        dit = None
+        dft = None
+        dot = None
+        dcct = None
+
+        # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
+        dWf = None
+        dWi = None
+        dWc = None
+        dWo = None
+        dbf = None
+        dbi = None
+        dbc = None
+        dbo = None
+
+        # Compute derivatives w.r.t previous hidden state, previous memory state and input. Use equations (15)-(17). (≈3 lines)
+        da_prev = None
+        dc_prev = None
+        dxt = None
 
     def serialize(self):
         pass
