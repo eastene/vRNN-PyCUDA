@@ -110,10 +110,10 @@ def lstm_cell_backward(da_next, dc_next, cache):
     n_a, m = a_next.shape
 
     # Compute gates related derivatives, you can find their values can be found by looking carefully at equations (7) to (10) (≈4 lines)
-    dot = da_next * tanh(c_next) * ot * (1 - ot)
-    dcct = dc_next * it + ot * (1 - tanh(c_next)**2)
-    dit = dc_next * cct + ot * (1-tanh(c_next)**2) * cct * da_next * it * (1 - it)
-    dft = dc_next * c_prev + ot * (1-tanh(c_next)**2) * c_prev * da_next * ft * (1-ft)
+    dot = da_next * np.tanh(c_next) * ot * (1 - ot)
+    dcct = (dc_next * it + ot * (1 - np.square(np.tanh(c_next))) * it * da_next) * (1 - np.square(cct))
+    dit = (dc_next * cct + ot * (1 - np.square(np.tanh(c_next))) * cct * da_next) * it * (1 - it)
+    dft = (dc_next * c_prev + ot *(1 - np.square(np.tanh(c_next))) * c_prev * da_next) * ft * (1 - ft)
 
     # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
     dWf = np.dot (dft * concat.T)
