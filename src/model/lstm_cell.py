@@ -60,12 +60,12 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     n_x, m = xt.shape
     n_y, n_a = Wy.shape
 
-    # Concatenate a_prev and xt (≈3 lines)
+    # Concatenate a_prev and xt
     concat = np.zeros(((n_a + n_x), m))
     concat[: n_a, :] = a_prev
     concat[n_a:, :] = xt
 
-    # Compute values for ft, it, cct, c_next, ot, a_next using the formulas given figure (4) (≈6 lines)
+    # Compute values for ft, it, cct, c_next, ot, a_next using the formulas given figure
     ft = sigmoid(np.matmul(Wf, concat) + bf)
     it = sigmoid(np.matmul(Wi, concat) + bi)
     cct = np.tanh(np.matmul(Wc, concat) + bc)
@@ -73,7 +73,7 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     ot = sigmoid(np.matmul(Wo, concat) + bo)
     a_next = ot * np.tanh(c_next)
 
-    # Compute prediction of the LSTM cell (≈1 line)
+    # Compute prediction of the LSTM cell
     yt_pred = softmax(np.matmul(Wy, a_next) + by)
     ### END CODE HERE ###
 
@@ -113,6 +113,7 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
           c stands for the memory value
     """
 
+    # define a cuda context (for matrix multiplication)
     api = cluda.cuda_api()
     thr = api.Thread.create()
 
@@ -132,7 +133,7 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     n_x, m = xt.shape
     n_y, n_a = Wy.shape
 
-    # Concatenate a_prev and xt (≈3 lines)
+    # Concatenate a_prev and xt
     concat = np.zeros(((n_a + n_x), m))
     concat[: n_a, :] = a_prev
     concat[n_a:, :] = xt
@@ -141,15 +142,15 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     c_prev = pycuda.gpuarray.to_gpu(c_prev)
 
     # Compute values for ft, it, cct, c_next, ot, a_next
-    ft = sigmoid_gpu(matmul_gpu(Wf, concat, thr) + bf)
-    it = sigmoid_gpu(matmul_gpu(Wi, concat, thr) + bi)
-    cct = tanh_gpu(matmul_gpu(Wc, concat, thr) + bc)
-    c_next = matmul_gpu(ft, c_prev, thr) + matmul_gpu(it, cct, thr)
-    ot = sigmoid_gpu(matmul_gpu(Wo, concat, thr) + bo)
-    a_next = matmul_gpu(ot, tanh_gpu(c_next), thr)
+    ft = sigmoid_gpu(matmul_gpu(Wf, concat) + bf)
+    it = sigmoid_gpu(matmul_gpu(Wi, concat) + bi)
+    cct = tanh_gpu(matmul_gpu(Wc, concat) + bc)
+    c_next = matmul_gpu(ft, c_prev) + matmul_gpu(it, cct)
+    ot = sigmoid_gpu(matmul_gpu(Wo, concat) + bo)
+    a_next = matmul_gpu(ot, tanh_gpu(c_next))
 
-    # Compute prediction of the LSTM cell (≈1 line)
-    yt_pred = softmax_gpu(matmul_gpu(Wy, a_next, thr) + by)
+    # Compute prediction of the LSTM cell
+    yt_pred = softmax_gpu(matmul_gpu(Wy, a_next) + by)
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
@@ -181,29 +182,22 @@ def lstm_cell_backward(da_next, dc_next, cache):
                         dbo -- Gradient w.r.t. biases of the output gate, of shape (n_a, 1)
     """
 
-    
-     # Retrieve information from "cache"
+    # Retrieve information from "cache"
     (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters) = cache
-    
-    ### START CODE HERE ###
-    # Retrieve dimensions from xt's and a_next's shape (≈2 lines)
+
+    # Retrieve dimensions from xt's and a_next's shape
     n_x, m = xt.shape
     n_a, m = a_next.shape
     
-    # Compute gates related derivatives, you can find their values can be found by looking carefully at equations (7) to (10) (≈4 lines)
+    # Compute gates related derivatives
     dot = da_next * np.tanh(c_next) * ot * (1 - ot)
     dcct = (dc_next * it + ot * (1 - np.square(np.tanh(c_next))) * it * da_next) * (1 - np.square(cct))
     dit = (dc_next * cct + ot * (1 - np.square(np.tanh(c_next))) * cct * da_next) * it * (1 - it)
     dft = (dc_next * c_prev + ot *(1 - np.square(np.tanh(c_next))) * c_prev * da_next) * ft * (1 - ft)
-    
-    # Code equations (7) to (10) (≈4 lines)
-    ##dit = None
-    ##dft = None
-    ##dot = None
-    ##dcct = None
+
     concat = np.concatenate((a_prev, xt), axis=0)
 
-    # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
+    # Compute parameters related derivatives.
     dWf = np.dot(dft, concat.T)
     dWi = np.dot(dit, concat.T)
     dWc = np.dot(dcct, concat.T)
@@ -213,14 +207,84 @@ def lstm_cell_backward(da_next, dc_next, cache):
     dbc = np.sum(dcct, axis=1,  keepdims = True)
     dbo = np.sum(dot, axis=1, keepdims = True)
 
-    # Compute derivatives w.r.t previous hidden state, previous memory state and input. Use equations (15)-(17). (≈3 lines)
+    # Compute derivatives w.r.t previous hidden state, previous memory state and input.
     da_prev = np.dot(parameters['Wf'][:, :n_a].T, dft) + np.dot(parameters['Wi'][:, :n_a].T, dit) + np.dot(parameters['Wc'][:, :n_a].T, dcct) + np.dot(parameters['Wo'][:, :n_a].T, dot)
     dc_prev = dc_next * ft + ot * (1 - np.square(np.tanh(c_next))) * ft * da_next
     dxt = np.dot(parameters['Wf'][:, n_a:].T, dft) + np.dot(parameters['Wi'][:, n_a:].T, dit) + np.dot(parameters['Wc'][:, n_a:].T, dcct) + np.dot(parameters['Wo'][:, n_a:].T, dot)
-    ### END CODE HERE ###
     
     # Save gradients in dictionary
     gradients = {"dxt": dxt, "da_prev": da_prev, "dc_prev": dc_prev, "dWf": dWf,"dbf": dbf, "dWi": dWi,"dbi": dbi,
                 "dWc": dWc,"dbc": dbc, "dWo": dWo,"dbo": dbo}
+
+    return gradients
+
+
+def lstm_cell_backward_gpu(da_next, dc_next, cache):
+    """
+    Implement the backward pass for the LSTM-cell (single time-step) on gpu.
+
+    Arguments:
+    da_next -- Gradients of next hidden state, of shape (n_a, m)
+    dc_next -- Gradients of next cell state, of shape (n_a, m)
+    cache -- cache storing information from the forward pass
+
+    Returns:
+    gradients -- python dictionary containing:
+                        dxt -- Gradient of input data at time-step t, of shape (n_x, m)
+                        da_prev -- Gradient w.r.t. the previous hidden state, numpy array of shape (n_a, m)
+                        dc_prev -- Gradient w.r.t. the previous memory state, of shape (n_a, m, T_x)
+                        dWf -- Gradient w.r.t. the weight matrix of the forget gate, numpy array of shape (n_a, n_a + n_x)
+                        dWi -- Gradient w.r.t. the weight matrix of the update gate, numpy array of shape (n_a, n_a + n_x)
+                        dWc -- Gradient w.r.t. the weight matrix of the memory gate, numpy array of shape (n_a, n_a + n_x)
+                        dWo -- Gradient w.r.t. the weight matrix of the output gate, numpy array of shape (n_a, n_a + n_x)
+                        dbf -- Gradient w.r.t. biases of the forget gate, of shape (n_a, 1)
+                        dbi -- Gradient w.r.t. biases of the update gate, of shape (n_a, 1)
+                        dbc -- Gradient w.r.t. biases of the memory gate, of shape (n_a, 1)
+                        dbo -- Gradient w.r.t. biases of the output gate, of shape (n_a, 1)
+    """
+
+    # Retrieve information from "cache"
+    (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters) = cache
+
+    # Retrieve dimensions from xt's and a_next's shape
+    n_x, m = xt.shape
+    n_a, m = a_next.shape
+
+    # Compute gates related derivatives
+    dot = matmul_gpu(matmul_gpu(da_next, tanh_gpu(c_next)), matmul_gpu(ot, from_one_gpu(ot)))
+    dcct = matmul_gpu(matmul_gpu(dc_next, it) + matmul_gpu(
+        matmul_gpu(ot, (from_one_gpu(square_gpu(tanh_gpu(c_next))))),
+        matmul_gpu(it, da_next)), (from_one_gpu(square_gpu(cct))))
+    dit = matmul_gpu(dc_next, cct) + matmul_gpu(
+        matmul_gpu(ot, (from_one_gpu(square_gpu(tanh_gpu(c_next))))),
+        matmul_gpu(matmul_gpu(cct, da_next), matmul_gpu(it, from_one_gpu(it))))
+    dft = matmul_gpu(matmul_gpu(dc_next, c_prev) +
+                     matmul_gpu(ot, matmul_gpu(from_one_gpu(square_gpu(tanh_gpu(c_next))), matmul_gpu(c_prev, da_next))),
+                     matmul_gpu(ft, from_one_gpu(ft)))
+
+    concat = np.concatenate((a_prev, xt), axis=0)
+    concat = pycuda.gpuarray.to_gpu(concat)
+
+    # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
+    dWf = matmul_gpu(dft, concat.T)
+    dWi = matmul_gpu(dit, concat.T)
+    dWc = matmul_gpu(dcct, concat.T)
+    dWo = matmul_gpu(dot, concat.T)
+    dbf = np.sum(dft, axis=1, keepdims=True)
+    dbi = np.sum(dit, axis=1, keepdims=True)
+    dbc = np.sum(dcct, axis=1, keepdims=True)
+    dbo = np.sum(dot, axis=1, keepdims=True)
+
+    # Compute derivatives w.r.t previous hidden state, previous memory state and input.
+    da_prev = matmul_gpu(parameters['Wf'][:, :n_a].T, dft) + matmul_gpu(parameters['Wi'][:, :n_a].T, dit) + matmul_gpu(
+        parameters['Wc'][:, :n_a].T, dcct) + matmul_gpu(parameters['Wo'][:, :n_a].T, dot)
+    dc_prev = matmul_gpu(dc_next, ft) + matmul_gpu(
+        matmul_gpu(ot, from_one_gpu(square_gpu(tanh_gpu(c_next)))), matmul_gpu(ft, da_next))
+    dxt = matmul_gpu(parameters['Wf'][:, n_a:].T, dft) + matmul_gpu(parameters['Wi'][:, n_a:].T, dit) + matmul_gpu(
+        parameters['Wc'][:, n_a:].T, dcct) + matmul_gpu(parameters['Wo'][:, n_a:].T, dot)
+
+    # Save gradients in dictionary
+    gradients = {"dxt": dxt, "da_prev": da_prev, "dc_prev": dc_prev, "dWf": dWf, "dbf": dbf, "dWi": dWi, "dbi": dbi,
+                 "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
 
     return gradients

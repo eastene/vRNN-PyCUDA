@@ -7,8 +7,10 @@ from pycuda.reduction import ReductionKernel
 import pycuda.gpuarray
 import numpy as np
 
+global thr  # global cuda thread
 
-def matmul_gpu(A, B, thr):
+
+def matmul_gpu(A, B):
 
     shape = (A.shape[0], B.shape[1])
     res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
@@ -19,6 +21,26 @@ def matmul_gpu(A, B, thr):
 
     return res_arr
 
+
+def square_gpu(A):
+    shape = A.shape
+    res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
+
+    mul = MatrixMul(A, A, out_arr=res_arr)
+    mulc = mul.compile(thr)
+    mulc(res_arr, A, A)
+
+    return res_arr
+
+
+def from_one_gpu(X):
+    from_one = ElementwiseKernel(
+        "double *Y, double *X",
+        "Y[i] = 1.0 - X[i]",
+        "from_one")
+    Y = pycuda.gpuarray.empty_like(X)
+    from_one(Y, X)
+    return Y
 
 def tanh_gpu(X):
     return pycuda.cumath.tanh(X)
