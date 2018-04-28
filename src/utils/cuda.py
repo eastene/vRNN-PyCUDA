@@ -9,6 +9,7 @@ import numpy as np
 
 
 def matmul_gpu(A, B):
+    global thr
 
     shape = (A.shape[0], B.shape[1])
     res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
@@ -21,6 +22,8 @@ def matmul_gpu(A, B):
 
 
 def square_gpu(A):
+    global thr
+
     shape = A.shape
     res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
 

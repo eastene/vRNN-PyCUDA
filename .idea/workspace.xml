@@ -3,9 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="aadfa5ec-85b4-4434-bdbb-93763b68c158" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/src/model/lstm_cell.py" afterPath="$PROJECT_DIR$/src/model/lstm_cell.py" />
       <change beforePath="$PROJECT_DIR$/src/utils/cuda.py" afterPath="$PROJECT_DIR$/src/utils/cuda.py" />
-      <change beforePath="$PROJECT_DIR$/test/test_cases/model_tests.py" afterPath="$PROJECT_DIR$/test/test_cases/model_tests.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -16,23 +14,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="Cell.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/model/Cell.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="17">
-              <caret line="116" column="10" lean-forward="false" selection-start-line="116" selection-start-column="10" selection-end-line="116" selection-end-column="10" />
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="lstm_cell.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="lstm_cell.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/model/lstm_cell.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4641">
-              <caret line="273" column="34" lean-forward="true" selection-start-line="273" selection-start-column="34" selection-end-line="273" selection-end-column="34" />
+            <state relative-caret-position="782">
+              <caret line="46" column="7" lean-forward="true" selection-start-line="46" selection-start-column="7" selection-end-line="46" selection-end-column="7" />
               <folding>
                 <element signature="e#27#45#0" expanded="true" />
               </folding>
@@ -43,7 +29,7 @@
       <file leaf-file-name="model_tests.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test/test_cases/model_tests.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="471">
+            <state relative-caret-position="1377">
               <caret line="81" column="63" lean-forward="false" selection-start-line="81" selection-start-column="63" selection-end-line="81" selection-end-column="63" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
@@ -52,11 +38,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="cuda.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="cuda.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/utils/cuda.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="20" column="0" lean-forward="true" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
+            <state relative-caret-position="425">
+              <caret line="25" column="4" lean-forward="false" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="4" />
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -73,8 +59,8 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/test/test_cases/model_tests.py" />
-        <option value="$PROJECT_DIR$/src/utils/cuda.py" />
         <option value="$PROJECT_DIR$/src/model/lstm_cell.py" />
+        <option value="$PROJECT_DIR$/src/utils/cuda.py" />
       </list>
     </option>
   </component>
@@ -184,7 +170,14 @@
       <option name="project" value="LOCAL" />
       <updated>1524941578193</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="implement backprop gpu test">
+      <created>1524942374032</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1524942374032</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -217,7 +210,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="implement backprop gpu" />
-    <option name="LAST_COMMIT_MESSAGE" value="implement backprop gpu" />
+    <MESSAGE value="implement backprop gpu test" />
+    <option name="LAST_COMMIT_MESSAGE" value="implement backprop gpu test" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -236,16 +230,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/model/Cell.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="17">
-          <caret line="116" column="10" lean-forward="false" selection-start-line="116" selection-start-column="10" selection-end-line="116" selection-end-column="10" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test/test_cases/preprocess_tests.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -258,7 +242,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/test/test_cases/model_tests.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="471">
+        <state relative-caret-position="1377">
           <caret line="81" column="63" lean-forward="false" selection-start-line="81" selection-start-column="63" selection-end-line="81" selection-end-column="63" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
@@ -266,22 +250,32 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/utils/cuda.py">
+    <entry file="file://$PROJECT_DIR$/src/model/Cell.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="20" column="0" lean-forward="true" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
+        <state relative-caret-position="833">
+          <caret line="116" column="10" lean-forward="false" selection-start-line="116" selection-start-column="10" selection-end-line="116" selection-end-column="10" />
           <folding>
-            <element signature="e#0#22#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/model/lstm_cell.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4641">
-          <caret line="273" column="34" lean-forward="true" selection-start-line="273" selection-start-column="34" selection-end-line="273" selection-end-column="34" />
+        <state relative-caret-position="782">
+          <caret line="46" column="7" lean-forward="true" selection-start-line="46" selection-start-column="7" selection-end-line="46" selection-end-column="7" />
           <folding>
             <element signature="e#27#45#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/utils/cuda.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="425">
+          <caret line="25" column="4" lean-forward="false" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="4" />
+          <folding>
+            <element signature="e#0#22#0" expanded="true" />
           </folding>
         </state>
       </provider>
