@@ -13,6 +13,8 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 import pycuda.gpuarray
 
+api = cluda.cuda_api()
+thr = api.Thread.create()
 
 def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """
@@ -112,10 +114,6 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     Note: ft/it/ot stand for the forget/update/output gates, cct stands for the candidate value (c tilde),
           c stands for the memory value
     """
-
-    # define a cuda context (for matrix multiplication)
-    api = cluda.cuda_api()
-    thr = api.Thread.create()
 
     # Retrieve parameters from "parameters"
     Wf = parameters["Wf"]
@@ -270,10 +268,10 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     dWi = matmul_gpu(dit, concat.T)
     dWc = matmul_gpu(dcct, concat.T)
     dWo = matmul_gpu(dot, concat.T)
-    dbf = np.sum(dft, axis=1, keepdims=True)
-    dbi = np.sum(dit, axis=1, keepdims=True)
-    dbc = np.sum(dcct, axis=1, keepdims=True)
-    dbo = np.sum(dot, axis=1, keepdims=True)
+    dbf = pycuda.gpuarray.sum(dft)
+    dbi = pycuda.gpuarray.sum(dit)
+    dbc = pycuda.gpuarray.sum(dcct)
+    dbo = pycuda.gpuarray.sum(dot)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input.
     da_prev = matmul_gpu(parameters['Wf'][:, :n_a].T, dft) + matmul_gpu(parameters['Wi'][:, :n_a].T, dit) + matmul_gpu(

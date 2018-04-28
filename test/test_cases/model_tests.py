@@ -77,6 +77,54 @@ class LstmLayerTestCase(unittest.TestCase):
         print(a)
         print(a_gpu.get())
 
+        @mark_cuda_test
+        def test_back_prop(self):
+            # define a cuda context (for matrix multiplication)
+
+            np.random.seed(1)
+            x = np.random.randn(3, 10)
+            a0 = np.random.randn(5, 10)
+            Wf = np.random.randn(5, 5 + 3)
+            bf = np.random.randn(5, 10)
+            Wi = np.random.randn(5, 5 + 3)
+            bi = np.random.randn(5, 10)
+            Wo = np.random.randn(5, 5 + 3)
+            bo = np.random.randn(5, 10)
+            Wc = np.random.randn(5, 5 + 3)
+            bc = np.random.randn(5, 10)
+            Wy = np.random.randn(2, 5)
+            by = np.random.randn(2, 10)
+
+            parameters = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "Wy": Wy, "bf": bf, "bi": bi, "bo": bo, "bc": bc,
+                          "by": by}
+
+            Wf_gpu = pycuda.gpuarray.to_gpu(Wf)
+            Wi_gpu = pycuda.gpuarray.to_gpu(Wi)
+            Wo_gpu = pycuda.gpuarray.to_gpu(Wo)
+            Wc_gpu = pycuda.gpuarray.to_gpu(Wc)
+            Wy_gpu = pycuda.gpuarray.to_gpu(Wy)
+            bf_gpu = pycuda.gpuarray.to_gpu(bf)
+            bi_gpu = pycuda.gpuarray.to_gpu(bi)
+            bo_gpu = pycuda.gpuarray.to_gpu(bo)
+            bc_gpu = pycuda.gpuarray.to_gpu(bc)
+            by_gpu = pycuda.gpuarray.to_gpu(by)
+
+            parameters_gpu = {"Wf": Wf_gpu, "Wi": Wi_gpu, "Wo": Wo_gpu, "Wc": Wc_gpu, "Wy": Wy_gpu, "bf": bf_gpu,
+                              "bi": bi_gpu, "bo": bo_gpu, "bc": bc_gpu,
+                              "by": by_gpu}
+
+            a, y, c, caches = lstm_cell_forward(x, a0, a0, parameters)
+            da_next = np.random.randn(5, 10)
+            dc_next = np.random.randn(5, 10)
+            gradients = lstm_cell_backward(da_next, dc_next, caches)
+            print("CPU DONE")
+            a_gpu, y_gpu, c_gpu, caches_gpu = lstm_cell_forward_gpu(x, a0, a0, parameters_gpu)
+            gradients = lstm_cell_backward_gpu(da_next, dc_next, caches)
+            print("GPU DONE")
+
+            print(gradients)
+            print(gradients.get())
+
 
 class CellTestCase(unittest.TestCase):
 

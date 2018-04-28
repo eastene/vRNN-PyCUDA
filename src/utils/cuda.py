@@ -7,8 +7,6 @@ from pycuda.reduction import ReductionKernel
 import pycuda.gpuarray
 import numpy as np
 
-global thr  # global cuda thread
-
 
 def matmul_gpu(A, B):
 
