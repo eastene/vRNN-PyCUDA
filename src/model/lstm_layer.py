@@ -52,7 +52,7 @@ def lstm_forward(x, a0, parameters, on_gpu):
     # loop over all time-steps
     for t in range(T_x):
         # Update next hidden state, next memory state, compute the prediction, get the cache (≈1 line)
-        a_next, c_next, yt, cache = lstm_cell_forward(x[:,:,t], a_next, c_next, parameters) if on_gpu else lstm_cell_forward_gpu(x[:,:,t], a_next, c_next, parameters)
+        a_next, c_next, yt, cache = lstm_cell_forward(x[:,:,t], a_next, c_next, parameters)
         # Save the value of the new "next" hidden state in a (≈1 line)
         a[:, :, t] = a_next
         # Save the value of the prediction in y (≈1 line)
@@ -66,6 +66,7 @@ def lstm_forward(x, a0, parameters, on_gpu):
     caches = (caches, x)
 
     return a, y, c, caches
+
 
 def lstm_backward(da, caches):
     
@@ -130,8 +131,6 @@ def lstm_backward(da, caches):
         dbo += gradients["dbo"]
     # Set the first activation's gradient to the backpropagated gradient da_prev.
     da0 = gradients["da_prev"]
-    
-    ### END CODE HERE ###
 
     # Store the gradients in a python dictionary
     gradients = {"dx": dx, "da0": da0, "dWf": dWf,"dbf": dbf, "dWi": dWi,"dbi": dbi,

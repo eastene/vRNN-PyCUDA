@@ -43,6 +43,7 @@ def from_one_gpu(X):
     from_one(Y, X)
     return Y
 
+
 def tanh_gpu(X):
     return pycuda.cumath.tanh(X)
 

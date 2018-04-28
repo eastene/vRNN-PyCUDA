@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="aadfa5ec-85b4-4434-bdbb-93763b68c158" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change beforePath="$PROJECT_DIR$/src/model/lstm_layer.py" afterPath="$PROJECT_DIR$/src/model/lstm_layer.py" />
       <change beforePath="$PROJECT_DIR$/src/utils/cuda.py" afterPath="$PROJECT_DIR$/src/utils/cuda.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -17,10 +18,32 @@
       <file leaf-file-name="lstm_cell.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/model/lstm_cell.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="782">
-              <caret line="46" column="7" lean-forward="true" selection-start-line="46" selection-start-column="7" selection-end-line="46" selection-end-column="7" />
+            <state relative-caret-position="46">
+              <caret line="219" column="34" lean-forward="false" selection-start-line="219" selection-start-column="27" selection-end-line="219" selection-end-column="34" />
               <folding>
                 <element signature="e#27#45#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="lstm_layer.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/model/lstm_layer.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="3" lean-forward="true" selection-start-line="0" selection-start-column="3" selection-end-line="0" selection-end-column="3" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="LSTM.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/model/LSTM.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#33#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -41,8 +64,8 @@
       <file leaf-file-name="cuda.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/utils/cuda.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="425">
-              <caret line="25" column="4" lean-forward="false" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="4" />
+            <state relative-caret-position="986">
+              <caret line="58" column="0" lean-forward="true" selection-start-line="58" selection-start-column="0" selection-end-line="58" selection-end-column="0" />
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -61,6 +84,7 @@
         <option value="$PROJECT_DIR$/test/test_cases/model_tests.py" />
         <option value="$PROJECT_DIR$/src/model/lstm_cell.py" />
         <option value="$PROJECT_DIR$/src/utils/cuda.py" />
+        <option value="$PROJECT_DIR$/src/model/lstm_layer.py" />
       </list>
     </option>
   </component>
@@ -177,7 +201,14 @@
       <option name="project" value="LOCAL" />
       <updated>1524942374032</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="cuda thread fix">
+      <created>1524942472688</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1524942472688</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -211,7 +242,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="implement backprop gpu" />
     <MESSAGE value="implement backprop gpu test" />
-    <option name="LAST_COMMIT_MESSAGE" value="implement backprop gpu test" />
+    <MESSAGE value="cuda thread fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="cuda thread fix" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -240,16 +272,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/test/test_cases/model_tests.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1377">
-          <caret line="81" column="63" lean-forward="false" selection-start-line="81" selection-start-column="63" selection-end-line="81" selection-end-column="63" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/model/Cell.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="833">
@@ -262,18 +284,46 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/model/lstm_cell.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="782">
-          <caret line="46" column="7" lean-forward="true" selection-start-line="46" selection-start-column="7" selection-end-line="46" selection-end-column="7" />
+        <state relative-caret-position="46">
+          <caret line="219" column="34" lean-forward="false" selection-start-line="219" selection-start-column="27" selection-end-line="219" selection-end-column="34" />
           <folding>
             <element signature="e#27#45#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/model/lstm_layer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="3" lean-forward="true" selection-start-line="0" selection-start-column="3" selection-end-line="0" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/model/LSTM.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#33#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/test_cases/model_tests.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1377">
+          <caret line="81" column="63" lean-forward="false" selection-start-line="81" selection-start-column="63" selection-end-line="81" selection-end-column="63" />
+          <folding>
+            <element signature="e#0#15#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/utils/cuda.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="425">
-          <caret line="25" column="4" lean-forward="false" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="4" />
+        <state relative-caret-position="986">
+          <caret line="58" column="0" lean-forward="true" selection-start-line="58" selection-start-column="0" selection-end-line="58" selection-end-column="0" />
           <folding>
             <element signature="e#0#22#0" expanded="true" />
           </folding>
