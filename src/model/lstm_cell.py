@@ -286,3 +286,30 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
                  "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
 
     return gradients
+
+
+def cell_to_gpu(parameters: dict):
+    """
+    copy cell weights to GPU
+    :param parameters: dictionary of cell weights
+    :return: gpu_params: parameters transferred as PyCuda GPUArray
+    """
+    gpu_params = {}
+    for parameter in parameters.items():
+        gpu_params[parameter[0]] = pycuda.gpuarray.to_gpu(parameter[1])
+
+    return gpu_params
+
+
+def cell_from_gpu(gpu_parameters: dict):
+    """
+    copy cell weights from GPU
+    :param gpu_parameters: dictionary of cell weights with weights being PyCuda GPUArrays
+    :return: parameters: parameters transferred from PyCuda GPUArray to numpy arrays
+    """
+    parameters = {}
+    for gpu_param in gpu_parameters.items():
+        parameter = gpu_param[1].get()
+        parameters[gpu_param[0]] = parameter
+
+    return parameters
