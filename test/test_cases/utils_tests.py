@@ -10,6 +10,18 @@ import skcuda.linalg as linalg
 
 class CudaTestCase(unittest.TestCase):
 
+    def test_elem_mul(self):
+        a = np.random.uniform(0, 10, (10, 5))
+        b = np.random.uniform(0, 10, (10, 5))
+
+        A = pycuda.gpuarray.to_gpu(a)
+        B = pycuda.gpuarray.to_gpu(b)
+        y_gpu = A * B
+
+        y = a * b
+
+        self.assertListEqual(y_gpu.get().tolist(), y.tolist())
+
     @mark_cuda_test
     def test_matmul_gpu(self):
         linalg.init()

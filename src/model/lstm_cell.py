@@ -142,9 +142,9 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     ft = sigmoid_gpu(add_bias_gpu(linalg.dot(Wf, concat), bf))
     it = sigmoid_gpu(add_bias_gpu(linalg.dot(Wi, concat), bi))
     cct = tanh_gpu(add_bias_gpu(linalg.dot(Wc, concat), bc))
-    c_next = elem_mul_gpu(ft, c_prev) + elem_mul_gpu(it, cct)
+    c_next = ft * c_prev + it * cct
     ot = sigmoid_gpu(add_bias_gpu(linalg.dot(Wo, concat), bo))
-    a_next = elem_mul_gpu(ot, tanh_gpu(c_next))
+    a_next = ot * tanh_gpu(c_next)
 
     # Compute prediction of the LSTM cell
     yt_pred = softmax_gpu(add_bias_gpu(linalg.dot(Wy, a_next), by))
