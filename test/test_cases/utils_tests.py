@@ -6,38 +6,37 @@ from pycuda.tools import mark_cuda_test
 from src.utils.cuda import *
 from src.utils.activations import *
 
+import skcuda.linalg as linalg
+
 class CudaTestCase(unittest.TestCase):
 
     @mark_cuda_test
     def test_matmul_gpu(self):
-        api = cluda.cuda_api()
-        thr = api.Thread.create()
+        linalg.init()
 
         a = np.random.uniform(0, 10, (10, 5))
         b = np.random.uniform(0, 10, (5, 4))
 
         A = pycuda.gpuarray.to_gpu(a)
         B = pycuda.gpuarray.to_gpu(b)
-        Y = matmul_gpu(A, B, thr)
+        y_gpu = linalg.dot(A, B)
 
         y = np.matmul(a, b)
 
-        y_gpu = Y.get()
-
-        print(y)
-        print(y_gpu)
-
-        self.assertListEqual(y_gpu.tolist(), y.tolist())
+        self.assertListEqual(y_gpu.get().tolist(), y.tolist())
 
 
     def test_add_bias(self):
+        linalg.init()
         a = np.random.uniform(0, 10, (10, 5))
-        b = np.ones((10, 1))
+        b = np.random.uniform(0, 10, (5, 4))
+        c = np.ones((10, 1))
 
-        x = a + b
+        x = np.matmul(a, b) + c
         a_gpu = pycuda.gpuarray.to_gpu(a)
         b_gpu = pycuda.gpuarray.to_gpu(b)
-        x_gpu = add_bias(a_gpu, b_gpu).get()
+        c_gpu = pycuda.gpuarray.to_gpu(c)
+        x_gpu = add_bias_gpu(linalg.dot(a_gpu, b_gpu), c_gpu).get()
 
         self.assertListEqual(x_gpu.tolist(), x.tolist())
 

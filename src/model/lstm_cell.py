@@ -13,8 +13,7 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 import pycuda.gpuarray
 
-api = cluda.cuda_api()
-thr = api.Thread.create()
+import skcuda.linalg as linalg
 
 def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """
@@ -77,7 +76,6 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters):
 
     # Compute prediction of the LSTM cell
     yt_pred = softmax(np.matmul(Wy, a_next) + by)
-    ### END CODE HERE ###
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
@@ -114,8 +112,7 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     Note: ft/it/ot stand for the forget/update/output gates, cct stands for the candidate value (c tilde),
           c stands for the memory value
     """
-    api = cluda.cuda_api()
-    thr = api.Thread.create()
+    linalg.init()
 
     # Retrieve parameters from "parameters"
     Wf = parameters["Wf"]
@@ -142,15 +139,15 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     c_prev = pycuda.gpuarray.to_gpu(c_prev)
 
     # Compute values for ft, it, cct, c_next, ot, a_next
-    ft = sigmoid_gpu(add_bias(matmul_gpu(Wf, concat, thr), bf))
-    it = sigmoid_gpu(add_bias(matmul_gpu(Wi, concat, thr), bi))
-    cct = tanh_gpu(add_bias(matmul_gpu(Wc, concat, thr), bc))
-    c_next = matmul_gpu(ft, c_prev, thr) + matmul_gpu(it, cct, thr)
-    ot = sigmoid_gpu(add_bias(matmul_gpu(Wo, concat, thr), bo))
-    a_next = matmul_gpu(ot, tanh_gpu(c_next), thr)
+    ft = sigmoid_gpu(add_bias_gpu(linalg.dot(Wf, concat), bf))
+    it = sigmoid_gpu(add_bias_gpu(linalg.dot(Wi, concat), bi))
+    cct = tanh_gpu(add_bias_gpu(linalg.dot(Wc, concat), bc))
+    c_next = elem_mul_gpu(ft, c_prev) + elem_mul_gpu(it, cct)
+    ot = sigmoid_gpu(add_bias_gpu(linalg.dot(Wo, concat), bo))
+    a_next = elem_mul_gpu(ot, tanh_gpu(c_next))
 
     # Compute prediction of the LSTM cell
-    yt_pred = softmax_gpu(add_bias(matmul_gpu(Wy, a_next, thr), by))
+    yt_pred = softmax_gpu(add_bias_gpu(linalg.dot(Wy, a_next), by))
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
@@ -242,9 +239,7 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
                         dbc -- Gradient w.r.t. biases of the memory gate, of shape (n_a, 1)
                         dbo -- Gradient w.r.t. biases of the output gate, of shape (n_a, 1)
     """
-
-    api = cluda.cuda_api()
-    thr = api.Thread.create()
+    linalg.init()
 
     # Retrieve information from "cache"
     (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters) = cache
@@ -254,7 +249,7 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     n_a, m = a_next.shape
 
     # Compute gates related derivatives
-    dot = matmul_gpu(matmul_gpu(da_next, tanh_gpu(c_next), thr), matmul_gpu(ot, from_one_gpu(ot), thr), thr)
+    dot = elem_mul_gpu(elem_mul_gpu(da_next, tanh_gpu(c_next)), elem_mul_gpu(ot, from_one_gpu(ot)))
     dcct = matmul_gpu(
         matmul_gpu(dc_next, it, thr) + matmul_gpu(matmul_gpu(ot, (from_one_gpu(square_gpu(tanh_gpu(c_next), thr))), thr),
                                                matmul_gpu(it, da_next, thr), thr), (from_one_gpu(square_gpu(cct, thr))), thr)

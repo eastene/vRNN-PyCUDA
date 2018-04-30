@@ -6,7 +6,7 @@ from pycuda.elementwise import ElementwiseKernel
 from pycuda.reduction import ReductionKernel
 import pycuda.gpuarray
 import numpy as np
-
+from src.model.GPUException import GPUException
 
 def matmul_gpu(A, B, thr):
 
@@ -32,15 +32,33 @@ def square_gpu(A, thr):
     return res_arr
 
 
-def add_bias(X, b):
+def elem_mul_gpu(X, Y):
+    xx, xy = X.shape
+    yx, yy = Y.shape
+    if xx != yx:
+        raise(GPUException("Dimension mismatch, {0} != {1}".format(xx, yx)))
+    if xy != yy:
+        raise (GPUException("Dimension mismatch, {0} != {1}".format(xx, yx)))
+
+    elem_mul = ElementwiseKernel(
+        "double *Z, double *X, double *Y",
+        "Z[i] = X[i] * Y[i]",
+        "addbias")
+    Z = pycuda.gpuarray.empty_like(X)
+    elem_mul(Z, X, Y)
+    return Y
+
+
+def add_bias_gpu(X, b):
     len, m = X.shape
-    addbias = ElementwiseKernel(
+    add_bias = ElementwiseKernel(
         "double *Y, double *X, double *b, int len",
         "Y[i] = X[i] + b[i % len]",
-        "addbias")
+        "add_bias")
     Y = pycuda.gpuarray.empty_like(X)
-    addbias(Y, X, b, len)
+    add_bias(Y, X, b, len)
     return Y
+
 
 def from_one_gpu(X):
     from_one = ElementwiseKernel(

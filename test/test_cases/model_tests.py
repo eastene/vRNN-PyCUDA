@@ -77,8 +77,8 @@ class LstmLayerTestCase(unittest.TestCase):
         a_gpu, y_gpu, c_gpu, caches = lstm_cell_forward_gpu(x, a0, a0, parameters_gpu)
         print("GPU DONE")
 
-        print(c)
-        print(c_gpu.get())
+        print(a)
+        print(a_gpu.get())
 
     @mark_cuda_test
     def test_back_prop(self):
@@ -125,8 +125,8 @@ class LstmLayerTestCase(unittest.TestCase):
         gradients_gpu = lstm_cell_backward_gpu(da_next_gpu, dc_next_gpu, caches_gpu)
         print("GPU DONE")
 
-        print(gradients['dWf'])
-        print(gradients_gpu['dWf'].get())
+        print(gradients['dbf'])
+        print(gradients_gpu['dbf'].get())
 
 
 class CellTestCase(unittest.TestCase):
