@@ -100,13 +100,13 @@ def lstm_forward_gpu(x, a0, parameters):
     n_y, n_a = parameters['Wy'].shape
 
     # initialize "a", "c" and "y" with zeros (≈3 lines)
-    a = pycuda.gpuarray.zeros((n_a, m, T_x))
-    c = pycuda.gpuarray.zeros((n_a, m, T_x))
-    y = pycuda.gpuarray.zeros((n_y, m, T_x))
+    a = pycuda.gpuarray.zeros((n_a, m, T_x), dtype=np.float64)
+    c = pycuda.gpuarray.zeros((n_a, m, T_x), dtype=np.float64)
+    y = pycuda.gpuarray.zeros((n_y, m, T_x), dtype=np.float64)
 
     # Initialize a_next and c_next (≈2 lines)
     a_next = a0
-    c_next = pycuda.gpuarray.zeros((n_a, m))
+    c_next = pycuda.gpuarray.zeros((n_a, m), dtype=np.float64)
 
     # loop over all time-steps
     for t in range(T_x):
@@ -125,6 +125,7 @@ def lstm_forward_gpu(x, a0, parameters):
     caches = (caches, x)
 
     return a, y, c, caches
+
 
 def lstm_backward(da, caches):
     
@@ -231,18 +232,18 @@ def lstm_backward_gpu(da, caches):
     n_x, m = x1.shape
 
     # initialize the gradients with the right sizes (≈12 lines)
-    dx = pycuda.gpuarray.zeros((n_x, m, T_x))
-    da0 = pycuda.gpuarray.zeros((n_a, m))
-    da_prevt = pycuda.gpuarray.zeros(da0.shape)
-    dc_prevt = pycuda.gpuarray.zeros(da0.shape)
-    dWf = pycuda.gpuarray.zeros((n_a, n_a + n_x))
-    dWi = pycuda.gpuarray.zeros(dWf.shape)
-    dWc = pycuda.gpuarray.zeros(dWf.shape)
-    dWo = pycuda.gpuarray.zeros(dWf.shape)
-    dbf = pycuda.gpuarray.zeros((n_a, 1))
-    dbi = pycuda.gpuarray.zeros(dbf.shape)
-    dbc = pycuda.gpuarray.zeros(dbf.shape)
-    dbo = pycuda.gpuarray.zeros(dbf.shape)
+    dx = pycuda.gpuarray.zeros((n_x, m, T_x), dtype=np.float64)
+    da0 = pycuda.gpuarray.zeros((n_a, m), dtype=np.float64)
+    da_prevt = pycuda.gpuarray.zeros(da0.shape, dtype=np.float64)
+    dc_prevt = pycuda.gpuarray.zeros(da0.shape, dtype=np.float64)
+    dWf = pycuda.gpuarray.zeros((n_a, n_a + n_x), dtype=np.float64)
+    dWi = pycuda.gpuarray.zeros(dWf.shape, dtype=np.float64)
+    dWc = pycuda.gpuarray.zeros(dWf.shape, dtype=np.float64)
+    dWo = pycuda.gpuarray.zeros(dWf.shape, dtype=np.float64)
+    dbf = pycuda.gpuarray.zeros((n_a, 1), dtype=np.float64)
+    dbi = pycuda.gpuarray.zeros(dbf.shape, dtype=np.float64)
+    dbc = pycuda.gpuarray.zeros(dbf.shape, dtype=np.float64)
+    dbo = pycuda.gpuarray.zeros(dbf.shape, dtype=np.float64)
 
     gradients = {}
     # loop back over the whole sequence

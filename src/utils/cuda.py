@@ -1,23 +1,11 @@
 import pycuda.autoinit
-from reikna.linalg import MatrixMul
-import reikna.cluda as cluda
 import pycuda.cumath
 from pycuda.elementwise import ElementwiseKernel
 from pycuda.reduction import ReductionKernel
 import pycuda.gpuarray
 import numpy as np
+from skcuda.linalg import transpose
 from src.model.GPUException import GPUException
-
-def matmul_gpu(A, B, thr):
-
-    shape = (A.shape[0], B.shape[1])
-    res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
-
-    mul = MatrixMul(A, B, out_arr=res_arr)
-    mulc = mul.compile(thr)
-    mulc(res_arr, A, B)
-
-    return res_arr
 
 
 def square_gpu(X):
@@ -34,7 +22,7 @@ def add_bias_gpu(X, b):
     len, m = X.shape
     add_bias = ElementwiseKernel(
         "double *Y, double *X, double *b, int len",
-        "Y[i] = X[i] + b[i % len]",
+        "Y[i] = X[i] + b[i % (len)]",
         "add_bias")
     Y = pycuda.gpuarray.empty_like(X)
     add_bias(Y, X, b, len)

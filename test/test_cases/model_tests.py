@@ -7,8 +7,6 @@ from src.model.lstm_layer import *
 import pycuda.gpuarray
 from pycuda.tools import mark_cuda_test
 
-api = cluda.cuda_api()
-thr = api.Thread.create()
 
 class RNNTestCase(unittest.TestCase):
 
@@ -86,15 +84,15 @@ class LstmLayerTestCase(unittest.TestCase):
         x = np.random.randn(3, 10)
         a0 = np.random.randn(5, 10)
         Wf = np.random.randn(5, 5 + 3)
-        bf = np.random.randn(5, 10)
+        bf = np.random.randn(5, 1)
         Wi = np.random.randn(5, 5 + 3)
-        bi = np.random.randn(5, 10)
+        bi = np.random.randn(5, 1)
         Wo = np.random.randn(5, 5 + 3)
-        bo = np.random.randn(5, 10)
+        bo = np.random.randn(5, 1)
         Wc = np.random.randn(5, 5 + 3)
-        bc = np.random.randn(5, 10)
+        bc = np.random.randn(5, 1)
         Wy = np.random.randn(2, 5)
-        by = np.random.randn(2, 10)
+        by = np.random.randn(2, 1)
 
         parameters = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "Wy": Wy, "bf": bf, "bi": bi, "bo": bo, "bc": bc,
                       "by": by}
@@ -125,8 +123,8 @@ class LstmLayerTestCase(unittest.TestCase):
         gradients_gpu = lstm_cell_backward_gpu(da_next_gpu, dc_next_gpu, caches_gpu)
         print("GPU DONE")
 
-        print(gradients['dbf'])
-        print(gradients_gpu['dbf'].get())
+        print(gradients['dbo'])
+        print(gradients_gpu['dbo'].get())
 
 
 class CellTestCase(unittest.TestCase):

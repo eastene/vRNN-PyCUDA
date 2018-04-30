@@ -14,6 +14,7 @@ import pycuda.autoinit
 import pycuda.gpuarray
 
 import skcuda.linalg as linalg
+import skcuda.misc as misc
 
 def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """
@@ -199,10 +200,10 @@ def lstm_cell_backward(da_next, dc_next, cache):
     dWi = np.dot(dit, concat.T)
     dWc = np.dot(dcct, concat.T)
     dWo = np.dot(dot, concat.T)
-    dbf = np.sum(dft, axis=1 ,keepdims = True)
-    dbi = np.sum(dit, axis=1, keepdims = True)
-    dbc = np.sum(dcct, axis=1,  keepdims = True)
-    dbo = np.sum(dot, axis=1, keepdims = True)
+    dbf = np.sum(dft, axis=1 ,keepdims=True)
+    dbi = np.sum(dit, axis=1, keepdims=True)
+    dbc = np.sum(dcct, axis=1,  keepdims=True)
+    dbo = np.sum(dot, axis=1, keepdims=True)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input.
     da_prev = np.dot(parameters['Wf'][:, :n_a].T, dft) + np.dot(parameters['Wi'][:, :n_a].T, dit) + np.dot(parameters['Wc'][:, :n_a].T, dcct) + np.dot(parameters['Wo'][:, :n_a].T, dot)
@@ -262,16 +263,15 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     dWi = linalg.dot(dit, linalg.transpose(concat))
     dWc = linalg.dot(dcct, linalg.transpose(concat))
     dWo = linalg.dot(dot, linalg.transpose(concat))
-    dbf = pycuda.gpuarray.sum(dft)
-    dbi = pycuda.gpuarray.sum(dit)
-    dbc = pycuda.gpuarray.sum(dcct)
-    dbo = pycuda.gpuarray.sum(dot)
+    dbf = misc.sum(dft, axis=1, keepdims=True)
+    dbi = misc.sum(dit, axis=1, keepdims=True)
+    dbc = misc.sum(dcct, axis=1, keepdims=True)
+    dbo = misc.sum(dot, axis=1, keepdims=True)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input.
     da_prev = linalg.dot(linalg.transpose(parameters['Wf'][:, :n_a]), dft) + linalg.dot(linalg.transpose(parameters['Wi'][:, :n_a]),dit) + linalg.dot(
         linalg.transpose(parameters['Wc'][:, :n_a]), dcct) + linalg.dot(linalg.transpose(parameters['Wo'][:, :n_a]), dot)
-    dc_prev = linalg.dot(dc_next, ft) + linalg.dot(ot * from_one_gpu(linalg.dot(tanh_gpu(c_next), tanh_gpu(c_next))),
-                                                   linalg.dot(ft, da_next))
+    dc_prev = dc_next * ft + ot * from_one_gpu(square_gpu(tanh_gpu(c_next))) * ft * da_next
     dxt = linalg.dot(linalg.transpose(parameters['Wf'][:, n_a:]), dft) + linalg.dot(linalg.transpose(parameters['Wi'][:, n_a:]), dit) + linalg.dot(
         linalg.transpose(parameters['Wc'][:, n_a:]), dcct) + linalg.dot(linalg.transpose(parameters['Wo'][:, n_a:]), dot)
 
@@ -280,6 +280,17 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
                  "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
 
     return gradients
+
+
+def update_weights(parameters, gradients, learning_rate):
+    parameters['Wf'] = parameters['Wf'] - learning_rate * gradients['dWf']
+    parameters['bf'] = parameters['bf'] - learning_rate * gradients['dbf']
+    parameters['Wi'] = parameters['Wi'] - learning_rate * gradients['dWi']
+    parameters['bi'] = parameters['bi'] - learning_rate * gradients['dbi']
+    parameters['Wc'] = parameters['Wc'] - learning_rate * gradients['dWc']
+    parameters['bc'] = parameters['bc'] - learning_rate * gradients['dbc']
+    parameters['Wo'] = parameters['Wo'] - learning_rate * gradients['dWo']
+    parameters['bo'] = parameters['bo'] - learning_rate * gradients['dbo']
 
 
 def cell_to_gpu(parameters: dict):
