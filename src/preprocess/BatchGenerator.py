@@ -22,7 +22,7 @@ class BatchGenerator:
         yield self.gen_batch()
 
     def gen_batch(self):
-        batch = np.zeros((self.num_unroll, self.vocab_size, self.batch_size))
+        batch = np.zeros((self.vocab_size, self.batch_size, self.num_unroll))
         for i in range(self.batch_size):
             idx = self.vocab_coder.word_2_index(self.text[(self.bookmark + i) % len(self.text)])
             if idx != -1:

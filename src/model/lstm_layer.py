@@ -46,8 +46,8 @@ def lstm_forward(x, a0, parameters):
     y = np.zeros((n_y, m, T_x))
 
     # Initialize a_next and c_next (≈2 lines)
-    a_next = a0
-    c_next = np.zeros((n_a, m))
+    a_next = a[:, :, 0]
+    c_next = c[:, :, 0]
 
     # loop over all time-steps
     for t in range(T_x):
@@ -226,7 +226,6 @@ def lstm_backward_gpu(da, caches):
     (caches, x) = caches
     (a1, c1, a0, c0, f1, i1, cc1, o1, x1, parameters) = caches[0]
 
-    ### START CODE HERE ###
     # Retrieve dimensions from da's and x1's shapes (≈2 lines)
     n_a, m, T_x = da.shape
     n_x, m = x1.shape
@@ -268,3 +267,15 @@ def lstm_backward_gpu(da, caches):
                  "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
 
     return gradients
+
+
+def update_weights(parameters, gradients, learning_rate):
+    parameters['Wf'] = parameters['Wf'] - learning_rate * gradients['dWf']
+    parameters['bf'] = parameters['bf'] - learning_rate * gradients['dbf']
+    parameters['Wi'] = parameters['Wi'] - learning_rate * gradients['dWi']
+    parameters['bi'] = parameters['bi'] - learning_rate * gradients['dbi']
+    parameters['Wc'] = parameters['Wc'] - learning_rate * gradients['dWc']
+    parameters['bc'] = parameters['bc'] - learning_rate * gradients['dbc']
+    parameters['Wo'] = parameters['Wo'] - learning_rate * gradients['dWo']
+    parameters['bo'] = parameters['bo'] - learning_rate * gradients['dbo']
+

@@ -282,17 +282,6 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     return gradients
 
 
-def update_weights(parameters, gradients, learning_rate):
-    parameters['Wf'] = parameters['Wf'] - learning_rate * gradients['dWf']
-    parameters['bf'] = parameters['bf'] - learning_rate * gradients['dbf']
-    parameters['Wi'] = parameters['Wi'] - learning_rate * gradients['dWi']
-    parameters['bi'] = parameters['bi'] - learning_rate * gradients['dbi']
-    parameters['Wc'] = parameters['Wc'] - learning_rate * gradients['dWc']
-    parameters['bc'] = parameters['bc'] - learning_rate * gradients['dbc']
-    parameters['Wo'] = parameters['Wo'] - learning_rate * gradients['dWo']
-    parameters['bo'] = parameters['bo'] - learning_rate * gradients['dbo']
-
-
 def cell_to_gpu(parameters: dict):
     """
     copy cell weights to GPU
