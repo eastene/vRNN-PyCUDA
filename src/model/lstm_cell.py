@@ -268,13 +268,12 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     dbo = pycuda.gpuarray.sum(dot)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input.
-    da_prev = linalg.dot(parameters['Wf'][:, :n_a].T, dft) + linalg.dot(parameters['Wi'][:, :n_a].T,
-                                                                          dit) + linalg.dot(
-        parameters['Wc'][:, :n_a].T, dcct) + linalg.dot(parameters['Wo'][:, :n_a].T, dot)
+    da_prev = linalg.dot(linalg.transpose(parameters['Wf'][:, :n_a]), dft) + linalg.dot(linalg.transpose(parameters['Wi'][:, :n_a]),dit) + linalg.dot(
+        linalg.transpose(parameters['Wc'][:, :n_a]), dcct) + linalg.dot(linalg.transpose(parameters['Wo'][:, :n_a]), dot)
     dc_prev = linalg.dot(dc_next, ft) + linalg.dot(ot * from_one_gpu(linalg.dot(tanh_gpu(c_next), tanh_gpu(c_next))),
                                                    linalg.dot(ft, da_next))
-    dxt = linalg.dot(parameters['Wf'][:, n_a:].T, dft) + linalg.dot(parameters['Wi'][:, n_a:].T, dit) + linalg.dot(
-        parameters['Wc'][:, n_a:].T, dcct) + linalg.dot(parameters['Wo'][:, n_a:].T, dot)
+    dxt = linalg.dot(linalg.transpose(parameters['Wf'][:, n_a:]), dft) + linalg.dot(linalg.transpose(parameters['Wi'][:, n_a:]), dit) + linalg.dot(
+        linalg.transpose(parameters['Wc'][:, n_a:]), dcct) + linalg.dot(linalg.transpose(parameters['Wo'][:, n_a:]), dot)
 
     # Save gradients in dictionary
     gradients = {"dxt": dxt, "da_prev": da_prev, "dc_prev": dc_prev, "dWf": dWf, "dbf": dbf, "dWi": dWi, "dbi": dbi,
