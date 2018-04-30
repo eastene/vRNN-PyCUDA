@@ -32,23 +32,6 @@ def square_gpu(A, thr):
     return res_arr
 
 
-def elem_mul_gpu(X, Y):
-    xx, xy = X.shape
-    yx, yy = Y.shape
-    if xx != yx:
-        raise(GPUException("Dimension mismatch, {0} != {1}".format(xx, yx)))
-    if xy != yy:
-        raise (GPUException("Dimension mismatch, {0} != {1}".format(xx, yx)))
-
-    elem_mul = ElementwiseKernel(
-        "double *Z, double *X, double *Y",
-        "Z[i] = X[i] * Y[i]",
-        "addbias")
-    Z = pycuda.gpuarray.empty_like(X)
-    elem_mul(Z, X, Y)
-    return Y
-
-
 def add_bias_gpu(X, b):
     len, m = X.shape
     add_bias = ElementwiseKernel(
