@@ -20,16 +20,14 @@ def matmul_gpu(A, B, thr):
     return res_arr
 
 
-def square_gpu(A, thr):
-
-    shape = A.shape
-    res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
-
-    mul = MatrixMul(A, A, out_arr=res_arr)
-    mulc = mul.compile(thr)
-    mulc(res_arr, A, A)
-
-    return res_arr
+def square_gpu(X):
+    square = ElementwiseKernel(
+        "double *Y, double *X",
+        "Y[i] = X[i] * X[i]",
+        "square")
+    Y = pycuda.gpuarray.empty_like(X)
+    square(Y, X)
+    return Y
 
 
 def add_bias_gpu(X, b):

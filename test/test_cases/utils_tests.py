@@ -10,6 +10,16 @@ import skcuda.linalg as linalg
 
 class CudaTestCase(unittest.TestCase):
 
+    def test_square(self):
+        a = np.random.uniform(0, 10, (10, 5))
+        A = pycuda.gpuarray.to_gpu(a)
+
+        y = np.square(a)
+        y_gpu = square_gpu(A).get()
+
+        self.assertListEqual(y_gpu.tolist(), y.tolist())
+
+
     def test_elem_mul(self):
         a = np.random.uniform(0, 10, (10, 5))
         b = np.random.uniform(0, 10, (10, 5))

@@ -249,24 +249,19 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     n_a, m = a_next.shape
 
     # Compute gates related derivatives
-    dot = elem_mul_gpu(elem_mul_gpu(da_next, tanh_gpu(c_next)), elem_mul_gpu(ot, from_one_gpu(ot)))
-    dcct = elem_mul_gpu(dc_next, it) + elem_mul_gpu(elem_mul_gpu(ot, from_one_gpu(elem_mul_gpu(tanh_gpu(c_next),tanh_gpu(c_next)))),
-                                               elem_mul_gpu(it, da_next), from_one_gpu(elem_mul_gpu(cct,cct)))
-    dit = elem_mul_gpu(dc_next, cct) + elem_mul_gpu(elem_mul_gpu(ot,from_one_gpu(elem_mul_gpu(tanh_gpu(c_next),tanh_gpu(c_next)))),
-                                                  elem_mul_gpu(elem_mul_gpu(cct, da_next),
-                                                             elem_mul_gpu(it, from_one_gpu(it))))
-    dft = elem_mul_gpu(elem_mul_gpu(dc_next, c_prev) +
-                     elem_mul_gpu(ot,
-                                elem_mul_gpu(from_one_gpu(elem_mul_gpu(tanh_gpu(c_next),tanh_gpu(c_next))), elem_mul_gpu(c_prev, da_next)),
-                     elem_mul_gpu(ft, from_one_gpu(ft))))
+    dot = da_next * tanh_gpu(c_next) * ot * (1 - ot)
+    dcct = (dc_next * it + ot * (1 - square_gpu(tanh_gpu(c_next))) * it * da_next) * (1 - square_gpu(cct))
+    dit = (dc_next * cct + ot * (1 - square_gpu(tanh_gpu(c_next))) * cct * da_next) * it * (1 - it)
+    dft = (dc_next * c_prev + ot * (1 - square_gpu(tanh_gpu(c_next))) * c_prev * da_next) * ft * (1 - ft)
+
     concat = np.concatenate((a_prev, xt), axis=0)
     concat = pycuda.gpuarray.to_gpu(concat)
 
     # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
-    dWf = linalg.dot(dft, concat.T)
-    dWi = linalg.dot(dit, concat.T)
-    dWc = linalg.dot(dcct, concat.T)
-    dWo = linalg.dot(dot, concat.T)
+    dWf = linalg.dot(dft, linalg.transpose(concat))
+    dWi = linalg.dot(dit, linalg.transpose(concat))
+    dWc = linalg.dot(dcct, linalg.transpose(concat))
+    dWo = linalg.dot(dot, linalg.transpose(concat))
     dbf = pycuda.gpuarray.sum(dft)
     dbi = pycuda.gpuarray.sum(dit)
     dbc = pycuda.gpuarray.sum(dcct)
@@ -276,7 +271,7 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     da_prev = linalg.dot(parameters['Wf'][:, :n_a].T, dft) + linalg.dot(parameters['Wi'][:, :n_a].T,
                                                                           dit) + linalg.dot(
         parameters['Wc'][:, :n_a].T, dcct) + linalg.dot(parameters['Wo'][:, :n_a].T, dot)
-    dc_prev = linalg.dot(dc_next, ft) + linalg.dot(elem_mul_gpu(ot, from_one_gpu(linalg.dot(tanh_gpu(c_next),tanh_gpu(c_next)))),
+    dc_prev = linalg.dot(dc_next, ft) + linalg.dot(ot * from_one_gpu(linalg.dot(tanh_gpu(c_next), tanh_gpu(c_next))),
                                                    linalg.dot(ft, da_next))
     dxt = linalg.dot(parameters['Wf'][:, n_a:].T, dft) + linalg.dot(parameters['Wi'][:, n_a:].T, dit) + linalg.dot(
         parameters['Wc'][:, n_a:].T, dcct) + linalg.dot(parameters['Wo'][:, n_a:].T, dot)
