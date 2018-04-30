@@ -202,16 +202,16 @@ class Cell:
             thr = api.Thread.create()
 
             self.ft_gpu = sigmoid_gpu(
-                matmul_gpu(self.Wfx_gpu, x_t_gpu, thr) + matmul_gpu(self.Wfh_gpu, h_prev_gpu, thr) + self.bf_gpu)
+                matmul_gpu(self.Wfx_gpu, x_t_gpu, ) + matmul_gpu(self.Wfh_gpu, h_prev_gpu, ) + self.bf_gpu)
             self.it_gpu = sigmoid_gpu(
-                matmul_gpu(self.Wix_gpu, x_t_gpu, thr) + matmul_gpu(self.Wih_gpu, h_prev_gpu, thr) + self.bi_gpu)
+                matmul_gpu(self.Wix_gpu, x_t_gpu, ) + matmul_gpu(self.Wih_gpu, h_prev_gpu, ) + self.bi_gpu)
             self.cct_gpu = tanh_gpu(
-                matmul_gpu(self.Wcx_gpu, x_t_gpu, thr) + matmul_gpu(self.Wch_gpu, h_prev_gpu, thr) + self.bc_gpu)
+                matmul_gpu(self.Wcx_gpu, x_t_gpu, ) + matmul_gpu(self.Wch_gpu, h_prev_gpu, ) + self.bc_gpu)
             self.ot_gpu = sigmoid_gpu(
-                matmul_gpu(self.Wox_gpu, x_t_gpu, thr) + matmul_gpu(self.Woh_gpu, h_prev_gpu, thr) + self.bo_gpu)
+                matmul_gpu(self.Wox_gpu, x_t_gpu, ) + matmul_gpu(self.Woh_gpu, h_prev_gpu, ) + self.bo_gpu)
 
-            c_gpu = matmul_gpu(self.ft_gpu, c_prev_gpu, thr) + matmul_gpu(self.it_gpu, self.cct_gpu, thr)
-            h_gpu = matmul_gpu(self.ot_gpu, tanh_gpu(c_gpu), thr)
+            c_gpu = matmul_gpu(self.ft_gpu, c_prev_gpu, ) + matmul_gpu(self.it_gpu, self.cct_gpu, )
+            h_gpu = matmul_gpu(self.ot_gpu, tanh_gpu(c_gpu), )
 
             return h_gpu, c_gpu
 

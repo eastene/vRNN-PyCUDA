@@ -8,8 +8,7 @@ import pycuda.gpuarray
 import numpy as np
 
 
-def matmul_gpu(A, B):
-    global thr
+def matmul_gpu(A, B, thr):
 
     shape = (A.shape[0], B.shape[1])
     res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
@@ -21,8 +20,7 @@ def matmul_gpu(A, B):
     return res_arr
 
 
-def square_gpu(A):
-    global thr
+def square_gpu(A, thr):
 
     shape = A.shape
     res_arr = thr.array((shape[0], shape[1]), dtype=A.dtype)
@@ -33,6 +31,16 @@ def square_gpu(A):
 
     return res_arr
 
+
+def add_bias(X, b):
+    len, m = X.shape
+    addbias = ElementwiseKernel(
+        "double *Y, double *X, double *b, int len",
+        "Y[i] = X[i] + b[i % len]",
+        "addbias")
+    Y = pycuda.gpuarray.empty_like(X)
+    addbias(Y, X, b, len)
+    return Y
 
 def from_one_gpu(X):
     from_one = ElementwiseKernel(
@@ -45,7 +53,13 @@ def from_one_gpu(X):
 
 
 def tanh_gpu(X):
-    return pycuda.cumath.tanh(X)
+    tanh_ = ElementwiseKernel(
+        "double *Y, double *X",
+        "Y[i] = (exp (X[i]) - exp (-X[i])) / (exp (X[i]) + exp (-X[i]))",
+        "tanh_")
+    Y = pycuda.gpuarray.empty_like(X)
+    tanh_(Y, X)
+    return Y
 
 
 def sigmoid_gpu(X):
