@@ -250,38 +250,36 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
 
     # Compute gates related derivatives
     dot = elem_mul_gpu(elem_mul_gpu(da_next, tanh_gpu(c_next)), elem_mul_gpu(ot, from_one_gpu(ot)))
-    dcct = matmul_gpu(
-        matmul_gpu(dc_next, it, thr) + matmul_gpu(matmul_gpu(ot, (from_one_gpu(square_gpu(tanh_gpu(c_next), thr))), thr),
-                                               matmul_gpu(it, da_next, thr), thr), (from_one_gpu(square_gpu(cct, thr))), thr)
-    dit = matmul_gpu(dc_next, cct, thr) + matmul_gpu(matmul_gpu(ot, (from_one_gpu(square_gpu(tanh_gpu(c_next), thr))), thr),
-                                                  matmul_gpu(matmul_gpu(cct, da_next, thr),
-                                                             matmul_gpu(it, from_one_gpu(it), thr), thr), thr)
-    dft = matmul_gpu(matmul_gpu(dc_next, c_prev, thr) +
-                     matmul_gpu(ot,
-                                matmul_gpu(from_one_gpu(square_gpu(tanh_gpu(c_next), thr)), matmul_gpu(c_prev, da_next, thr), thr), thr),
-                     matmul_gpu(ft, from_one_gpu(ft), thr), thr)
-
+    dcct = elem_mul_gpu(dc_next, it) + elem_mul_gpu(elem_mul_gpu(ot, from_one_gpu(elem_mul_gpu(tanh_gpu(c_next),tanh_gpu(c_next)))),
+                                               elem_mul_gpu(it, da_next), from_one_gpu(elem_mul_gpu(cct,cct)))
+    dit = elem_mul_gpu(dc_next, cct) + elem_mul_gpu(elem_mul_gpu(ot,from_one_gpu(elem_mul_gpu(tanh_gpu(c_next),tanh_gpu(c_next)))),
+                                                  elem_mul_gpu(elem_mul_gpu(cct, da_next),
+                                                             elem_mul_gpu(it, from_one_gpu(it))))
+    dft = elem_mul_gpu(elem_mul_gpu(dc_next, c_prev) +
+                     elem_mul_gpu(ot,
+                                elem_mul_gpu(from_one_gpu(elem_mul_gpu(tanh_gpu(c_next),tanh_gpu(c_next))), elem_mul_gpu(c_prev, da_next)),
+                     elem_mul_gpu(ft, from_one_gpu(ft))))
     concat = np.concatenate((a_prev, xt), axis=0)
     concat = pycuda.gpuarray.to_gpu(concat)
 
     # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
-    dWf = matmul_gpu(dft, concat.T, thr)
-    dWi = matmul_gpu(dit, concat.T, thr)
-    dWc = matmul_gpu(dcct, concat.T, thr)
-    dWo = matmul_gpu(dot, concat.T, thr)
+    dWf = linalg.dot(dft, concat.T)
+    dWi = linalg.dot(dit, concat.T)
+    dWc = linalg.dot(dcct, concat.T)
+    dWo = linalg.dot(dot, concat.T)
     dbf = pycuda.gpuarray.sum(dft)
     dbi = pycuda.gpuarray.sum(dit)
     dbc = pycuda.gpuarray.sum(dcct)
     dbo = pycuda.gpuarray.sum(dot)
 
     # Compute derivatives w.r.t previous hidden state, previous memory state and input.
-    da_prev = matmul_gpu(parameters['Wf'][:, :n_a].T, dft, thr) + matmul_gpu(parameters['Wi'][:, :n_a].T,
-                                                                          dit, thr) + matmul_gpu(
-        parameters['Wc'][:, :n_a].T, dcct, thr) + matmul_gpu(parameters['Wo'][:, :n_a].T, dot, thr)
-    dc_prev = matmul_gpu(dc_next, ft, thr) + matmul_gpu(matmul_gpu(ot, from_one_gpu(square_gpu(tanh_gpu(c_next), thr)), thr),
-                                                     matmul_gpu(ft, da_next, thr), thr)
-    dxt = matmul_gpu(parameters['Wf'][:, n_a:].T, dft, thr) + matmul_gpu(parameters['Wi'][:, n_a:].T, dit, thr) + matmul_gpu(
-        parameters['Wc'][:, n_a:].T, dcct, thr) + matmul_gpu(parameters['Wo'][:, n_a:].T, dot, thr)
+    da_prev = linalg.dot(parameters['Wf'][:, :n_a].T, dft) + linalg.dot(parameters['Wi'][:, :n_a].T,
+                                                                          dit) + linalg.dot(
+        parameters['Wc'][:, :n_a].T, dcct) + linalg.dot(parameters['Wo'][:, :n_a].T, dot)
+    dc_prev = linalg.dot(dc_next, ft) + linalg.dot(elem_mul_gpu(ot, from_one_gpu(linalg.dot(tanh_gpu(c_next),tanh_gpu(c_next)))),
+                                                   linalg.dot(ft, da_next))
+    dxt = linalg.dot(parameters['Wf'][:, n_a:].T, dft) + linalg.dot(parameters['Wi'][:, n_a:].T, dit) + linalg.dot(
+        parameters['Wc'][:, n_a:].T, dcct) + linalg.dot(parameters['Wo'][:, n_a:].T, dot)
 
     # Save gradients in dictionary
     gradients = {"dxt": dxt, "da_prev": da_prev, "dc_prev": dc_prev, "dWf": dWf, "dbf": dbf, "dWi": dWi, "dbi": dbi,
