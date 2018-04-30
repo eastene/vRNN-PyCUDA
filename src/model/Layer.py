@@ -1,6 +1,6 @@
-from src.model.Cell import Cell
-
 import numpy as np
+
+from src.model.Cell import Cell
 
 
 class Layer:

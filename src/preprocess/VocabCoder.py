@@ -1,4 +1,3 @@
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 import numpy as np
 
 
@@ -18,4 +17,4 @@ class VocabCoder:
             return -1
 
     def index_2_word(self, encoding):
-        pass
+        return self.vocab[np.argwhere(encoding == 1)]

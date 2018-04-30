@@ -1,11 +1,9 @@
+import numpy as np
 import pycuda.autoinit
 import pycuda.cumath
+import pycuda.gpuarray
 from pycuda.elementwise import ElementwiseKernel
 from pycuda.reduction import ReductionKernel
-import pycuda.gpuarray
-import numpy as np
-from skcuda.linalg import transpose
-from src.model.GPUException import GPUException
 
 
 def square_gpu(X):

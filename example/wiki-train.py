@@ -1,6 +1,6 @@
 import argparse
 import json
-from src.model.LSTM import RNN
+from src.model.LSTM import LSTM
 import os
 from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
 from src.preprocess.VocabCoder import VocabCoder
@@ -12,12 +12,15 @@ def parse_file(file):
         yield json.loads(line)
 
 
-def train(rnn, vocab, text):
-    rnn.train(vocab, text)
+def train(lstm, vocab, text, use_gpu):
+    if use_gpu:
+        lstm.train_gpu(vocab, text)
+    else:
+        lstm.train(vocab, text)
 
 
-def run(rnn, seed):
-    pass
+def run(lstm, vocab, seed):
+    lstm.run(vocab, seed)
 
 
 def profile(rnn):
@@ -51,10 +54,6 @@ def read_vocab_file(vocab_file='example-vocab-10000.txt'):
 
 def main():
     parser = argparse.ArgumentParser(description="Train or run RNN using example Wikipedia data.")
-    parser.add_argument('--train', action='store_true', dest='train',
-                        help='train on example datasets')
-    parser.add_argument('--run', action='store_false', dest='train',
-                        help='generate article text, requires trained model')
     parser.add_argument('--profile', action='store_true', dest='profile',
                         help='profile training/running RNN model save results to file')
     parser.add_argument('--vocab-size', dest='vocab_size',
@@ -65,39 +64,40 @@ def main():
                         help='specify sequence length which is also number of LSTM cell unrollings (default 5)')
     parser.add_argument('--num-hidden-layers', dest='num_hidden_layers',
                         help='specify number of hidden layers to use (default 1)')
+    parser.add_argument('--learn-rate', dest='learning_rate',
+                        help='learning rate for updating the model')
     parser.add_argument('--seed', dest='seed',
                         help='seed the rnn input for sequence generation')
     parser.add_argument('--force-cpu', action='store-true', dest='force_cpu',
                         help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
-    parser.set_defaults(train=True, profile=False, vocab_size=10000, batch_size=40, seq_len=5, num_hidden_layers=1, seed=42, force_cpu=False)
+    parser.set_defaults(profile=False, vocab_size=10000, batch_size=40, seq_len=5, num_hidden_layers=1,
+                        learning_rate = 0.5, seed=42, force_cpu=False)
 
     args = parser.parse_args()
 
-    rnn = RNN(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers + 2)  # input/output layer required
-    if args.train:
-        # Step 1: Vocab generation
-        print("Generating vocabulary of " + str(args.vocab_size) + " unique tokens.")
-        vocab = {}
-        if args.vocab_size == 10000:
-            vocab = read_vocab_file()
-        else:
-            vocab = read_vocab_file('example-vocab-' + str(args.vocab_size) + '.txt')
+    lstm = LSTM(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers + 2, args.learning_rate)  # input/output layer required
 
-        # Step 2: NLP processing of corpus
-        training_set = ""
-        for f in os.listdir('train-example-data'):
-            data = parse_file(f)
-            for obj in data:
-                training_set += obj['text']
-        tokens = tokenize(training_set)
-        normal = normalize(tokens)
-
-        # Step 3: Encoding and RNN training
-        print("Beginning training on example dataset")
-        train(rnn, vocab, normal)
-
+    # Step 1: Vocab generation
+    print("Generating vocabulary of " + str(args.vocab_size) + " unique tokens.")
+    if args.vocab_size == 10000:
+        vocab = read_vocab_file()
     else:
-        run(rnn, args.seed)
+        vocab = read_vocab_file('example-vocab-' + str(args.vocab_size) + '.txt')
+
+    # Step 2: NLP processing of corpus
+    training_set = ""
+    for f in os.listdir('train-example-data'):
+        data = parse_file(f)
+        for obj in data:
+            training_set += obj['text']
+    tokens = tokenize(training_set)
+    normal = normalize(tokens)
+
+    # Step 3: Encoding and RNN training
+    print("Beginning training on example dataset")
+    train(lstm, vocab, normal, args.force_cpu)
+
+    run(lstm, vocab, args.seed)
 
 
 if __name__ == "__main__":

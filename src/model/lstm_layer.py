@@ -4,8 +4,6 @@ FROM: Coursera
 
 """
 
-import numpy as np
-
 from src.model.lstm_cell import *
 
 

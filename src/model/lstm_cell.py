@@ -5,16 +5,14 @@ FROM: Coursera
 
 """
 
-import numpy as np
+import pycuda.autoinit
+import pycuda.gpuarray
+import skcuda.linalg as linalg
+import skcuda.misc as misc
+
 from src.utils.activations import *
 from src.utils.cuda import *
 
-import pycuda.driver as cuda
-import pycuda.autoinit
-import pycuda.gpuarray
-
-import skcuda.linalg as linalg
-import skcuda.misc as misc
 
 def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """

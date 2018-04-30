@@ -1,12 +1,9 @@
-import numpy as np
-from src.utils.activations import sigmoid, tanh, softmax
-from src.utils.cuda import *
-
-from src.model.GPUException import GPUException
-
-import pycuda.driver as cuda
 import pycuda.autoinit
 import pycuda.gpuarray
+
+from src.model.GPUException import GPUException
+from src.utils.activations import sigmoid, tanh
+from src.utils.cuda import *
 
 
 class Cell:

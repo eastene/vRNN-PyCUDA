@@ -1,9 +1,13 @@
-import numpy as np
 from src.model.lstm_layer import *
 from random import randrange
-from src.utils.activations import softmax
 from src.preprocess.VocabCoder import VocabCoder
 from src.preprocess.BatchGenerator import BatchGenerator
+from random import randrange
+
+from src.model.lstm_layer import *
+from src.preprocess.BatchGenerator import BatchGenerator
+from src.preprocess.VocabCoder import VocabCoder
+
 
 class LSTM:
 

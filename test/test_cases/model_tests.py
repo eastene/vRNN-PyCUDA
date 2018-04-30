@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from time import time
 from src.model.LSTM import LSTM
 from src.model.lstm_layer import *
 import random
@@ -23,10 +24,10 @@ class RNNTestCase(unittest.TestCase):
     """
 
     def test_train(self):
-        num_unroll = 3
-        vocab_size = 10
-        batch_size = 2
-        num_layers = 2
+        num_unroll = 10
+        vocab_size = 1000
+        batch_size = 50
+        num_layers = 3
         learning_rate = 0.05
 
         lstm = LSTM(num_unroll, vocab_size, batch_size, num_layers, learning_rate)
@@ -40,25 +41,23 @@ class RNNTestCase(unittest.TestCase):
                 X[random.randrange(0, vocab_size), j, i] = 1
 
         a0 = np.zeros((vocab_size, batch_size))
-        a, y, c, caches = lstm_forward(X[:, :, :num_unroll], a0, parameters[0][0])
+        start = time()
+        a, y, c, caches = lstm_forward(X[:, :, :num_unroll], a0, parameters[0])
         caches_cache.append(caches)
         for layer in range(1, num_layers):
-            a, y, c, caches = lstm_forward(y, a, parameters[layer][0])
+            a, y, c, caches = lstm_forward(y, a, parameters[layer])
             caches_cache.append(caches)
-
-        preloss = parameters[1][0]['Wf']
 
         loss = X[:, :, 1:] - y
 
         gradients = lstm_backward(loss, caches_cache[len(caches_cache) - 1])
-        update_weights(parameters[num_layers - 1][0], gradients, learning_rate)
+        update_weights(parameters[num_layers - 1], gradients, learning_rate)
         for layer in reversed(range(num_layers - 1)):
             gradients = lstm_backward(gradients['dx'], caches_cache[layer])
-            update_weights(parameters[layer][0], gradients, learning_rate)
+            update_weights(parameters[layer], gradients, learning_rate)
+        end = time()
 
-        print(preloss - parameters[1][0]['Wf'])
-
-
+        print(end - start)
 
 class LstmLayerTestCase(unittest.TestCase):
 
