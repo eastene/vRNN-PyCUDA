@@ -25,5 +25,9 @@ def tokenize(text):
     return nltk.word_tokenize(text)
 
 
+def tokenize_char(text):
+    return list(text)
+
+
 def normalize(tokens):
     return [word.lower() for word in tokens]

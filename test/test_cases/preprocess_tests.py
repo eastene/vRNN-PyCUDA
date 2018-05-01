@@ -6,6 +6,18 @@ from src.preprocess.BatchGenerator import BatchGenerator
 
 class BatchGeneratorTestCase(unittest.TestCase):
 
+    def test_iter(self):
+        text = "This is a test of the encoder"
+        tokens = tokenize(text)
+        normal = normalize(tokens)
+
+        vocab = ["this", "is", "test", "of", "the"]
+        coder = VocabCoder(vocab)
+        batcher = BatchGenerator(normal, 2, 2, 5, coder)
+
+        for batch in batcher:
+            print(batch)
+
     def test_batch(self):
         text = "This is a test of the encoder"
         tokens = tokenize(text)

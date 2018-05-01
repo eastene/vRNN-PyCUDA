@@ -5,7 +5,7 @@ FROM: Coursera
 
 """
 
-import pycuda.autoinit
+#import pycuda.autoinit
 import pycuda.gpuarray
 import skcuda.linalg as linalg
 import skcuda.misc as misc

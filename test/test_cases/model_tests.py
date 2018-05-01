@@ -1,14 +1,16 @@
 import random
 import unittest
 from time import time
-
-import pycuda.autoinit
+from pycuda.tools import make_default_context
 import pycuda.gpuarray
 from pycuda.tools import mark_cuda_test
-from skcuda.misc import init
+import string
 
 from src.model.LSTM import LSTM
 from src.model.lstm_layer import *
+from src.preprocess.nlp import *
+from src.preprocess.VocabCoder import VocabCoder
+from src.preprocess.BatchGenerator import BatchGenerator
 
 
 class RNNTestCase(unittest.TestCase):
@@ -24,6 +26,55 @@ class RNNTestCase(unittest.TestCase):
 
         self.assertEqual(rnn.__repr__(), answer)
     """
+
+    def test_train_sample(self):
+        vocab = string.ascii_lowercase + " "
+        num_unroll = 15
+        vocab_size = len(vocab)
+        batch_size = 5
+        num_layers = 3
+        learning_rate = 0.05
+
+        lstm = LSTM(num_unroll, vocab_size, batch_size, num_layers, learning_rate)
+
+        text = "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's " \
+               "standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled " \
+               "it to make a type specimen book. It has survived not only five centuries, but also the leap into " \
+               "electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the " \
+               "release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing " \
+               "software like Aldus PageMaker including versions of Lorem Ipsum."
+        tokens = tokenize_char(text)
+        normal = normalize(tokens)
+
+
+        lstm.train(list(vocab), normal, 1000)
+
+        lstm.run(list(vocab), 10)
+
+    def test_train_sample_gpu(self):
+        vocab = string.ascii_lowercase + " "
+        num_unroll = 3
+        vocab_size = len(vocab)
+        batch_size = 2
+        num_layers = 1
+        learning_rate = 0.05
+
+        lstm = LSTM(num_unroll, vocab_size, batch_size, num_layers, learning_rate)
+
+        text = "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's " \
+               "standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled " \
+               "it to make a type specimen book. It has survived not only five centuries, but also the leap into " \
+               "electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the " \
+               "release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing " \
+               "software like Aldus PageMaker including versions of Lorem Ipsum."
+        tokens = tokenize_char(text)
+        normal = normalize(tokens)
+
+
+        lstm.train_gpu(list(vocab), normal, 10)
+
+        lstm.run(list(vocab), 10)
+
 
     def test_train(self):
         num_unroll = 10
