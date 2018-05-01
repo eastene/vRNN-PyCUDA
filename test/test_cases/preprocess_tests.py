@@ -1,7 +1,24 @@
 import unittest
+import numpy as np
 from src.preprocess.nlp import top_k_word_frequencies, tokenize, normalize
 from src.preprocess.VocabCoder import VocabCoder
+from src.preprocess.BatchGenerator import BatchGenerator
 
+class BatchGeneratorTestCase(unittest.TestCase):
+
+    def test_batch(self):
+        text = "This is a test of the encoder"
+        tokens = tokenize(text)
+        normal = normalize(tokens)
+
+        vocab = ["this", "is", "test", "of", "the"]
+        coder = VocabCoder(vocab)
+        batcher = BatchGenerator(normal, 2, 2, 5, coder)
+        batch = batcher.gen_batch()
+
+        answer = np.array([[1,0,0,0,0], [0,1,0,0,0]])
+
+        print(np.allclose(np.transpose(batch[:,:,0]), answer))
 
 class VocabTestCase(unittest.TestCase):
 
