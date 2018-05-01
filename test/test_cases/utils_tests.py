@@ -58,7 +58,7 @@ class CudaTestCase(unittest.TestCase):
         a_gpu = pycuda.gpuarray.to_gpu(a)
         b_gpu = pycuda.gpuarray.to_gpu(b)
         c_gpu = pycuda.gpuarray.to_gpu(c)
-        x_gpu = add_bias_gpu(linalg.dot(a_gpu, b_gpu), c_gpu).get()
+        x_gpu = misc.add_matvec(linalg.dot(a_gpu, b_gpu), c_gpu).get()
 
         self.assertListEqual(x_gpu.tolist(), x.tolist())
 

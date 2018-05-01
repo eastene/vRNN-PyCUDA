@@ -135,18 +135,17 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     concat[n_a:, :] = xt
 
     concat = pycuda.gpuarray.to_gpu(concat)
-    c_prev = pycuda.gpuarray.to_gpu(c_prev)
 
     # Compute values for ft, it, cct, c_next, ot, a_next
-    ft = sigmoid_gpu(add_bias_gpu(linalg.dot(Wf, concat), bf))
-    it = sigmoid_gpu(add_bias_gpu(linalg.dot(Wi, concat), bi))
-    cct = tanh_gpu(add_bias_gpu(linalg.dot(Wc, concat), bc))
+    ft = sigmoid_gpu(misc.add_matvec(linalg.dot(Wf, concat), bf))
+    it = sigmoid_gpu(misc.add_matvec(linalg.dot(Wi, concat), bi))
+    cct = tanh_gpu(misc.add_matvec(linalg.dot(Wc, concat), bc))
     c_next = ft * c_prev + it * cct
-    ot = sigmoid_gpu(add_bias_gpu(linalg.dot(Wo, concat), bo))
+    ot = sigmoid_gpu(misc.add_matvec(linalg.dot(Wo, concat), bo))
     a_next = ot * tanh_gpu(c_next)
 
     # Compute prediction of the LSTM cell
-    yt_pred = softmax_gpu(add_bias_gpu(linalg.dot(Wy, a_next), by))
+    yt_pred = softmax_gpu(misc.add_matvec(linalg.dot(Wy, a_next), by))
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
@@ -278,30 +277,3 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
                  "dWc": dWc, "dbc": dbc, "dWo": dWo, "dbo": dbo}
 
     return gradients
-
-
-def cell_to_gpu(parameters: dict):
-    """
-    copy cell weights to GPU
-    :param parameters: dictionary of cell weights
-    :return: gpu_params: parameters transferred as PyCuda GPUArray
-    """
-    gpu_params = {}
-    for parameter in parameters.items():
-        gpu_params[parameter[0]] = pycuda.gpuarray.to_gpu(parameter[1])
-
-    return gpu_params
-
-
-def cell_from_gpu(gpu_parameters: dict):
-    """
-    copy cell weights from GPU
-    :param gpu_parameters: dictionary of cell weights with weights being PyCuda GPUArrays
-    :return: parameters: parameters transferred from PyCuda GPUArray to numpy arrays
-    """
-    parameters = {}
-    for gpu_param in gpu_parameters.items():
-        parameter = gpu_param[1].get()
-        parameters[gpu_param[0]] = parameter
-
-    return parameters

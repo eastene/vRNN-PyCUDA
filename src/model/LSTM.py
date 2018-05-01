@@ -36,7 +36,7 @@ class LSTM:
             a, y, c, caches = lstm_forward(X[:, :, :self.num_unroll], a0, self.parameters[0])
             caches_cache.append(caches)
             for layer in range(1, self.num_layers):
-                a, y, c, caches = lstm_forward(y, a, self.parameters[layer])
+                a, y, c, caches = lstm_forward(y, a0, self.parameters[layer])
                 caches_cache.append(caches)
 
             loss = self.loss_func(y, X[:, :, 1:])

@@ -16,17 +16,6 @@ def square_gpu(X):
     return Y
 
 
-def add_bias_gpu(X, b):
-    len, m = X.shape
-    add_bias = ElementwiseKernel(
-        "double *Y, double *X, double *b, int len",
-        "Y[i] = X[i] + b[i % (len)]",
-        "add_bias")
-    Y = pycuda.gpuarray.empty_like(X)
-    add_bias(Y, X, b, len)
-    return Y
-
-
 def from_one_gpu(X):
     from_one = ElementwiseKernel(
         "double *Y, double *X",

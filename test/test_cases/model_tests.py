@@ -26,7 +26,7 @@ class RNNTestCase(unittest.TestCase):
     def test_train(self):
         num_unroll = 10
         vocab_size = 1000
-        batch_size = 50
+        batch_size = 5
         num_layers = 3
         learning_rate = 0.05
 
@@ -45,7 +45,7 @@ class RNNTestCase(unittest.TestCase):
         a, y, c, caches = lstm_forward(X[:, :, :num_unroll], a0, parameters[0])
         caches_cache.append(caches)
         for layer in range(1, num_layers):
-            a, y, c, caches = lstm_forward(y, a, parameters[layer])
+            a, y, c, caches = lstm_forward(y, a0, parameters[layer])
             caches_cache.append(caches)
 
         loss = X[:, :, 1:] - y
@@ -58,6 +58,47 @@ class RNNTestCase(unittest.TestCase):
         end = time()
 
         print(end - start)
+
+    def test_train_gpu(self):
+        num_unroll = 10
+        vocab_size = 1000
+        batch_size = 50
+        num_layers = 3
+        learning_rate = 0.05
+
+        lstm = LSTM(num_unroll, vocab_size, batch_size, num_layers, learning_rate)
+
+        parameters = lstm.allocate_parameters()
+        caches_cache = []
+
+        gpu_parameters = []
+        for layer_params in parameters:
+            gpu_parameters.append(layer_to_gpu(layer_params))
+
+        X = np.zeros((vocab_size, batch_size, num_unroll + 1))
+        for i in range(num_unroll + 1):
+            for j in range(batch_size):
+                X[random.randrange(0, vocab_size), j, i] = 1
+
+        a0 = np.zeros((vocab_size, batch_size))
+        start = time()
+        a, y, c, caches = lstm_forward_gpu(X[:, :, :num_unroll], a0, gpu_parameters[0])
+        caches_cache.append(caches)
+        for layer in range(1, num_layers):
+            a, y, c, caches = lstm_forward_gpu(y, a0, gpu_parameters[layer])
+            caches_cache.append(caches)
+
+        loss = X[:, :, 1:] - y
+
+        gradients = lstm_backward_gpu(loss, caches_cache[len(caches_cache) - 1])
+        update_weights(gpu_parameters[num_layers - 1], gradients, learning_rate)
+        for layer in reversed(range(num_layers - 1)):
+            gradients = lstm_backward_gpu(gradients['dx'], caches_cache[layer])
+            update_weights(gpu_parameters[layer], gradients, learning_rate)
+        end = time()
+
+        print(end - start)
+
 
 class LstmLayerTestCase(unittest.TestCase):
 
@@ -102,13 +143,14 @@ class LstmLayerTestCase(unittest.TestCase):
         bo_gpu = pycuda.gpuarray.to_gpu(bo)
         bc_gpu = pycuda.gpuarray.to_gpu(bc)
         by_gpu = pycuda.gpuarray.to_gpu(by)
+        c_gpu = pycuda.gpuarray.to_gpu(a0)
 
         parameters_gpu = {"Wf": Wf_gpu, "Wi": Wi_gpu, "Wo": Wo_gpu, "Wc": Wc_gpu, "Wy": Wy_gpu, "bf": bf_gpu, "bi": bi_gpu, "bo": bo_gpu, "bc": bc_gpu,
                       "by": by_gpu}
 
         a, y, c, caches = lstm_cell_forward(x, a0, a0, parameters)
         print("CPU DONE")
-        a_gpu, y_gpu, c_gpu, caches = lstm_cell_forward_gpu(x, a0, a0, parameters_gpu)
+        a_gpu, y_gpu, c_gpu, caches = lstm_cell_forward_gpu(x, a0, c_gpu, parameters_gpu)
         print("GPU DONE")
 
         print(a)
@@ -143,6 +185,7 @@ class LstmLayerTestCase(unittest.TestCase):
         bo_gpu = pycuda.gpuarray.to_gpu(bo)
         bc_gpu = pycuda.gpuarray.to_gpu(bc)
         by_gpu = pycuda.gpuarray.to_gpu(by)
+        c_gpu = pycuda.gpuarray.to_gpu(a0)
 
         parameters_gpu = {"Wf": Wf_gpu, "Wi": Wi_gpu, "Wo": Wo_gpu, "Wc": Wc_gpu, "Wy": Wy_gpu, "bf": bf_gpu,
                           "bi": bi_gpu, "bo": bo_gpu, "bc": bc_gpu,
@@ -153,7 +196,7 @@ class LstmLayerTestCase(unittest.TestCase):
         dc_next = np.random.randn(5, 10)
         gradients = lstm_cell_backward(da_next, dc_next, caches)
         print("CPU DONE")
-        a_gpu, y_gpu, c_gpu, caches_gpu = lstm_cell_forward_gpu(x, a0, a0, parameters_gpu)
+        a_gpu, y_gpu, c_gpu, caches_gpu = lstm_cell_forward_gpu(x, a0, c_gpu, parameters_gpu)
         da_next_gpu = pycuda.gpuarray.to_gpu(da_next)
         dc_next_gpu = pycuda.gpuarray.to_gpu(dc_next)
         gradients_gpu = lstm_cell_backward_gpu(da_next_gpu, dc_next_gpu, caches_gpu)

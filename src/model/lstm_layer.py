@@ -5,6 +5,7 @@ FROM: Coursera
 """
 
 from src.model.lstm_cell import *
+from skcuda import linalg
 
 
 def lstm_forward(x, a0, parameters):
@@ -44,8 +45,8 @@ def lstm_forward(x, a0, parameters):
     y = np.zeros((n_y, m, T_x))
 
     # Initialize a_next and c_next (≈2 lines)
-    a_next = a[:, :, 0]
-    c_next = c[:, :, 0]
+    a_next = a0
+    c_next = np.zeros_like(a0)
 
     # loop over all time-steps
     for t in range(T_x):
@@ -103,7 +104,7 @@ def lstm_forward_gpu(x, a0, parameters):
     y = pycuda.gpuarray.zeros((n_y, m, T_x), dtype=np.float64)
 
     # Initialize a_next and c_next (≈2 lines)
-    a_next = a0
+    a_next = pycuda.gpuarray.to_gpu(a0)
     c_next = pycuda.gpuarray.zeros((n_a, m), dtype=np.float64)
 
     # loop over all time-steps
@@ -277,3 +278,29 @@ def update_weights(parameters, gradients, learning_rate):
     parameters['Wo'] = parameters['Wo'] - learning_rate * gradients['dWo']
     parameters['bo'] = parameters['bo'] - learning_rate * gradients['dbo']
 
+
+def layer_to_gpu(parameters: dict):
+    """
+    copy cell weights to GPU
+    :param parameters: dictionary of cell weights
+    :return: gpu_params: parameters transferred as PyCuda GPUArray
+    """
+    gpu_params = {}
+    for parameter in parameters.items():
+        gpu_params[parameter[0]] = pycuda.gpuarray.to_gpu(parameter[1])
+
+    return gpu_params
+
+
+def layer_from_gpu(gpu_parameters: dict):
+    """
+    copy cell weights from GPU
+    :param gpu_parameters: dictionary of cell weights with weights being PyCuda GPUArrays
+    :return: parameters: parameters transferred from PyCuda GPUArray to numpy arrays
+    """
+    parameters = {}
+    for gpu_param in gpu_parameters.items():
+        parameter = gpu_param[1].get()
+        parameters[gpu_param[0]] = parameter
+
+    return parameters
