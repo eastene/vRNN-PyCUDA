@@ -111,7 +111,7 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     Note: ft/it/ot stand for the forget/update/output gates, cct stands for the candidate value (c tilde),
           c stands for the memory value
     """
-    linalg.init()
+    #linalg.init()
 
     # Retrieve parameters from "parameters"
     Wf = parameters["Wf"]
@@ -130,11 +130,9 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     n_y, n_a = Wy.shape
 
     # Concatenate a_prev and xt
-    concat = np.zeros(((n_a + n_x), m))
+    concat = pycuda.gpuarray.zeros(((n_a + n_x), m), dtype=np.float64)
     concat[: n_a, :] = a_prev
     concat[n_a:, :] = xt
-
-    concat = pycuda.gpuarray.to_gpu(concat)
 
     # Compute values for ft, it, cct, c_next, ot, a_next
     ft = sigmoid_gpu(misc.add_matvec(linalg.dot(Wf, concat), bf))
@@ -237,7 +235,7 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
                         dbc -- Gradient w.r.t. biases of the memory gate, of shape (n_a, 1)
                         dbo -- Gradient w.r.t. biases of the output gate, of shape (n_a, 1)
     """
-    linalg.init()
+    #linalg.init()
 
     # Retrieve information from "cache"
     (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters) = cache
@@ -252,8 +250,9 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     dit = (dc_next * cct + ot * (1 - square_gpu(tanh_gpu(c_next))) * cct * da_next) * it * (1 - it)
     dft = (dc_next * c_prev + ot * (1 - square_gpu(tanh_gpu(c_next))) * c_prev * da_next) * ft * (1 - ft)
 
-    concat = np.concatenate((a_prev, xt), axis=0)
-    concat = pycuda.gpuarray.to_gpu(concat)
+    concat = pycuda.gpuarray.zeros(((n_a + n_x), m), dtype=np.float64)
+    concat[:n_a,:] = a_prev
+    concat[n_a:,:] = xt
 
     # Compute parameters related derivatives. Use equations (11)-(14) (≈8 lines)
     dWf = linalg.dot(dft, linalg.transpose(concat))

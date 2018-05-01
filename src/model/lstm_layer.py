@@ -5,7 +5,7 @@ FROM: Coursera
 """
 
 from src.model.lstm_cell import *
-from skcuda import linalg
+import pycuda.gpuarray
 
 
 def lstm_forward(x, a0, parameters):
@@ -107,10 +107,13 @@ def lstm_forward_gpu(x, a0, parameters):
     a_next = pycuda.gpuarray.to_gpu(a0)
     c_next = pycuda.gpuarray.zeros((n_a, m), dtype=np.float64)
 
+    # transfer X to gpu
+    x_gpu = pycuda.gpuarray.to_gpu(x)
+
     # loop over all time-steps
     for t in range(T_x):
         # Update next hidden state, next memory state, compute the prediction, get the cache (≈1 line)
-        a_next, c_next, yt, cache = lstm_cell_forward_gpu(x[:,:,t], a_next, c_next, parameters)
+        a_next, c_next, yt, cache = lstm_cell_forward_gpu(x_gpu[:,:,t], a_next, c_next, parameters)
         # Save the value of the new "next" hidden state in a (≈1 line)
         a[:, :, t] = a_next
         # Save the value of the prediction in y (≈1 line)
@@ -121,7 +124,7 @@ def lstm_forward_gpu(x, a0, parameters):
         caches.append(cache)
 
     # store values needed for backward propagation in cache
-    caches = (caches, x)
+    caches = (caches, x_gpu)
 
     return a, y, c, caches
 
@@ -246,8 +249,9 @@ def lstm_backward_gpu(da, caches):
     gradients = {}
     # loop back over the whole sequence
     for t in reversed(range(T_x)):
+        da_gpu = pycuda.gpuarray.to_gpu(da[:, :, t])
         # Compute all gradients using lstm_cell_backward
-        gradients = lstm_cell_backward_gpu(da[:, :, t], dc_prevt, caches[t])
+        gradients = lstm_cell_backward_gpu(da_gpu, dc_prevt, caches[t])
         # Store or add the gradient to the parameters' previous step's gradient
         dx[:, :, t] = gradients["dxt"]
         dWf += gradients["dWf"]

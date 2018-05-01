@@ -1,12 +1,14 @@
-import unittest
-import numpy as np
-from time import time
-from src.model.LSTM import LSTM
-from src.model.lstm_layer import *
 import random
+import unittest
+from time import time
 
+import pycuda.autoinit
 import pycuda.gpuarray
 from pycuda.tools import mark_cuda_test
+from skcuda.misc import init
+
+from src.model.LSTM import LSTM
+from src.model.lstm_layer import *
 
 
 class RNNTestCase(unittest.TestCase):
@@ -60,9 +62,12 @@ class RNNTestCase(unittest.TestCase):
         print(end - start)
 
     def test_train_gpu(self):
-        num_unroll = 10
-        vocab_size = 1000
-        batch_size = 50
+
+        misc.init()
+
+        num_unroll = 5
+        vocab_size = 100
+        batch_size = 5
         num_layers = 3
         learning_rate = 0.05
 
@@ -79,8 +84,8 @@ class RNNTestCase(unittest.TestCase):
         for i in range(num_unroll + 1):
             for j in range(batch_size):
                 X[random.randrange(0, vocab_size), j, i] = 1
-
         a0 = np.zeros((vocab_size, batch_size))
+
         start = time()
         a, y, c, caches = lstm_forward_gpu(X[:, :, :num_unroll], a0, gpu_parameters[0])
         caches_cache.append(caches)
@@ -88,7 +93,7 @@ class RNNTestCase(unittest.TestCase):
             a, y, c, caches = lstm_forward_gpu(y, a0, gpu_parameters[layer])
             caches_cache.append(caches)
 
-        loss = X[:, :, 1:] - y
+        loss = X[:, :, 1:] - y.get()
 
         gradients = lstm_backward_gpu(loss, caches_cache[len(caches_cache) - 1])
         update_weights(gpu_parameters[num_layers - 1], gradients, learning_rate)

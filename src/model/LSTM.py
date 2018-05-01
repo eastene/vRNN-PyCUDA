@@ -1,7 +1,5 @@
-from src.model.lstm_layer import *
-from random import randrange
-from src.preprocess.VocabCoder import VocabCoder
-from src.preprocess.BatchGenerator import BatchGenerator
+import pycuda.autoinit
+from skcuda.misc import init as skcuda_init
 from random import randrange
 
 from src.model.lstm_layer import *
@@ -48,6 +46,7 @@ class LSTM:
                 update_weights(self.parameters[layer], gradients, self.learning_rate)
 
     def train_gpu(self, vocab, text):
+        skcuda_init()
         coder = VocabCoder(vocab)
         batch_generator = BatchGenerator(text, self.batch_size, self.num_unroll, self.vocab_size, coder)
 
@@ -62,7 +61,7 @@ class LSTM:
                 a, y, c, caches = lstm_forward_gpu(y, a, self.parameters[layer])
                 caches_cache.append(caches)
 
-            loss = self.loss_func(y, X[:, :, 1:])
+            loss = self.loss_func(y.get, X[:, :, 1:])
 
             gradients = lstm_backward_gpu(loss, caches_cache[len(caches_cache) - 1])
             update_weights(self.parameters[self.num_layers - 1][0], gradients, self.learning_rate)
