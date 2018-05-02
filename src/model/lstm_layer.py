@@ -7,7 +7,6 @@ FROM: Coursera
 from src.model.lstm_cell import *
 import pycuda.gpuarray
 
-
 def lstm_forward(x, a0, parameters):
     """
     Implement the forward propagation of the recurrent neural network using an LSTM-cell
@@ -296,6 +295,18 @@ def layer_to_gpu(parameters: dict):
     return gpu_params
 
 
+def layer_to_gpu_async(parameters: dict, stream):
+    """
+    copy cell weights to GPU
+    :param parameters: dictionary of cell weights
+    :return: gpu_params: parameters transferred as PyCuda GPUArray
+    """
+    gpu_params = {}
+    for parameter in parameters.items():
+        gpu_params[parameter[0]] = pycuda.gpuarray.to_gpu_async(parameter[1], stream=stream)
+    return gpu_params
+
+
 def layer_from_gpu(gpu_parameters: dict):
     """
     copy cell weights from GPU
@@ -305,6 +316,20 @@ def layer_from_gpu(gpu_parameters: dict):
     parameters = {}
     for gpu_param in gpu_parameters.items():
         parameter = gpu_param[1].get()
+        parameters[gpu_param[0]] = parameter
+
+    return parameters
+
+
+def layer_from_gpu_async(gpu_parameters: dict, stream):
+    """
+    copy cell weights from GPU
+    :param gpu_parameters: dictionary of cell weights with weights being PyCuda GPUArrays
+    :return: parameters: parameters transferred from PyCuda GPUArray to numpy arrays
+    """
+    parameters = {}
+    for gpu_param in gpu_parameters.items():
+        parameter = gpu_param[1].get_async(stream=stream)
         parameters[gpu_param[0]] = parameter
 
     return parameters

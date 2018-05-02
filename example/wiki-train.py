@@ -4,6 +4,7 @@ import json
 from src.model.LSTM import LSTM
 import os
 from src.preprocess.nlp import *
+from time import time
 
 # parse single json object at a time
 def parse_file(file):
@@ -11,9 +12,12 @@ def parse_file(file):
         yield json.loads(line)
 
 
-def train(lstm, vocab, text, iterations, use_gpu, max_layers_on_gpu=1):
+def train(lstm, vocab, text, iterations, use_gpu, max_layers_on_gpu):
     if not use_gpu:
-        lstm.train_gpu(vocab, text, iterations, max_layers_on_gpu)
+        if max_layers_on_gpu == lstm.num_layers or max_layers_on_gpu == 1:
+            lstm.train_gpu(vocab, text, iterations, max_layers_on_gpu)
+        else:
+            lstm.train_gpu_async(vocab, text, iterations, max_layers_on_gpu)
     else:
         lstm.train(vocab, text, iterations)
 
@@ -22,9 +26,35 @@ def run(lstm, vocab, seed):
     lstm.run(vocab, seed)
 
 
-def profile(rnn):
-    pass
+def profile():
+    print("Beginning Profiling...")
+    # default profiling parameters
+    seq_len = 5
+    vocab = string.ascii_lowercase + " "
+    batch_size = 5
+    num_hidden_layers = 3
+    learning_rate = 0.5
 
+    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
+
+    with open('wiki-train-data.txt', 'r') as f:
+        training_set = f.read()
+
+    tokens = tokenize_char(training_set)
+
+    normal = normalize(tokens)
+
+    print("Training on GPU without prefetching, all layers on GPU")
+    s1 = time()
+    lstm.train_gpu(vocab, normal, 3, num_hidden_layers)
+    e1 = time()
+    print("Training on GPU with prefetching, 2 layers on GPU at a time")
+    s2 = time()
+    lstm.train_gpu_async(vocab, normal, 3, 2)
+    e2 = time()
+
+    print("No Prefetching, all layers: {0}".format(e1-s1))
+    print("Prefetching enabled, 2 layers: {0}".format(e2 - s2))
 
 def gen_vocab(size):
     corpus = ""
@@ -45,8 +75,8 @@ def read_vocab_file(vocab_file='example-vocab-10000.txt'):
 
 def main():
     parser = argparse.ArgumentParser(description="Train or run RNN using example Wikipedia data.")
-    #parser.add_argument('--profile', action='store-true', dest='profile',
-    #                    help='profile training/running RNN model save results to file')
+    parser.add_argument('--profile', action='store_true', dest='profile',
+                        help='profile training/running RNN model save results to file')
     parser.add_argument('--vocab-size', dest='vocab_size', type=int,
                         help='specify vocabulary size, defaults to train on characters (default 27 tokens)')
     parser.add_argument('--batch-size', dest='batch_size', type=int,
@@ -62,13 +92,19 @@ def main():
     parser.add_argument('--seed', dest='seed', type=int,
                         help='seed the rnn input for sequence generation')
     parser.add_argument('--max-layer-gpu', dest='max_layer_gpu', type=int,
-                        help='maximum number of LSTM layers allowed on GPU at a time (default = 2)')
+                        help='maximum number of LSTM layers allowed on GPU at a time, to enable layer prefetching, '
+                             'must be 2 or more to allow a layer to be prefetched while executing the current layer,'
+                             'if set to 1, or equal to the number of layers, no prefetching will be used(default = 2)')
     parser.add_argument('--force-cpu', action='store_true', dest='force_cpu',
                         help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
     parser.set_defaults(profile=False, vocab_size=27, batch_size=40, seq_len=5, num_hidden_layers=2,
                         learning_rate=0.5, iterations=10, seed=42, max_layer_gpu=1, force_cpu=False)
 
     args = parser.parse_args()
+
+    if args.profile:
+        profile()
+        return
 
     lstm = LSTM(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers, args.learning_rate)  # input/output layer required
 

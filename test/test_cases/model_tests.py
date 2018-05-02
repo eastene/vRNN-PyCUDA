@@ -3,6 +3,8 @@ import unittest
 from time import time
 from pycuda.tools import make_default_context
 import pycuda.gpuarray
+import pycuda.driver
+import pycuda.curandom
 from pycuda.tools import mark_cuda_test
 import string
 
@@ -56,7 +58,7 @@ class RNNTestCase(unittest.TestCase):
         num_unroll = 3
         vocab_size = len(vocab)
         batch_size = 2
-        num_layers = 1
+        num_layers = 4
         learning_rate = 0.05
 
         lstm = LSTM(num_unroll, vocab_size, batch_size, num_layers, learning_rate)
@@ -71,10 +73,32 @@ class RNNTestCase(unittest.TestCase):
         normal = normalize(tokens)
 
 
-        lstm.train_gpu(list(vocab), normal, 10)
+        lstm.train_gpu(list(vocab), normal, 4, 2)
 
-        lstm.run(list(vocab), 10)
+        lstm.run(list(vocab), "This is a test of the gpu version")
 
+    def test_train_sample_gpu_async(self):
+        vocab = string.ascii_lowercase + " "
+        num_unroll = 3
+        vocab_size = len(vocab)
+        batch_size = 2
+        num_layers = 4
+        learning_rate = 0.05
+
+        lstm = LSTM(num_unroll, vocab_size, batch_size, num_layers, learning_rate)
+
+        text = "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's " \
+               "standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled " \
+               "it to make a type specimen book. It has survived not only five centuries, but also the leap into " \
+               "electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the " \
+               "release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing " \
+               "software like Aldus PageMaker including versions of Lorem Ipsum."
+        tokens = tokenize_char(text)
+        normal = normalize(tokens)
+
+        lstm.train_gpu_async(list(vocab), normal, 4)
+
+        lstm.run(list(vocab), "This is a test of the gpu version")
 
     def test_train(self):
         num_unroll = 10
@@ -157,6 +181,19 @@ class RNNTestCase(unittest.TestCase):
 
 
 class LstmLayerTestCase(unittest.TestCase):
+
+    def test_layer_to_gpu_async(self):
+        D = np.random.rand(20000,10000)
+        stream = pycuda.driver.Stream()
+        print(time())
+        d = pycuda.gpuarray.to_gpu_async(D, stream=stream)
+        print(time())
+        stream.synchronize()
+        print("")
+        del d
+        print(time())
+        d = pycuda.gpuarray.to_gpu(D)
+        print(time())
 
     @mark_cuda_test
     def test_add(self):
