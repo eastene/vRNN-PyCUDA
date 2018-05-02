@@ -45,16 +45,31 @@ def profile():
     normal = normalize(tokens)
 
     print("Training on GPU without prefetching, all layers on GPU")
+    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
     s1 = time()
     lstm.train_gpu(vocab, normal, 3, num_hidden_layers)
     e1 = time()
     print("Training on GPU with prefetching, 2 layers on GPU at a time")
+    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
     s2 = time()
     lstm.train_gpu_async(vocab, normal, 3, 2)
     e2 = time()
 
-    print("No Prefetching, all layers: {0}".format(e1-s1))
+    print("Training on GPU without prefetching, 2 layers on GPU")
+    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
+    s3 = time()
+    lstm.train_gpu(vocab, normal, 3, 2)
+    e3 = time()
+    print("Training on GPU with prefetching, 2 layers on GPU at a time")
+    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
+    s4 = time()
+    lstm.train_gpu_async(vocab, normal, 3, 2)
+    e4 = time()
+
+    print("No Prefetching, all layers: {0}".format(e1 - s1))
     print("Prefetching enabled, 2 layers: {0}".format(e2 - s2))
+    print("No Prefetching, 2 layers: {0}".format(e3 - s3))
+    print("Prefetching enabled, 2 layers: {0}".format(e4 - s4))
 
 def gen_vocab(size):
     corpus = ""
@@ -83,8 +98,8 @@ def main():
                         help='specify batch size for training (default 50 tokens)')
     parser.add_argument('--seq-len', dest='seq_len', type=int,
                         help='specify sequence length which is also number of LSTM cell unrollings (default 5)')
-    parser.add_argument('--num-hidden-layers', dest='num_hidden_layers', type=int,
-                        help='specify number of hidden layers to use (default 1)')
+    parser.add_argument('--num-layers', dest='num_hidden_layers', type=int,
+                        help='specify number of layers to use (default 3)')
     parser.add_argument('--learn-rate', dest='learning_rate', type=float,
                         help='learning rate for updating the model')
     parser.add_argument('--iterations', dest='iterations', type=int,
@@ -97,8 +112,8 @@ def main():
                              'if set to 1, or equal to the number of layers, no prefetching will be used(default = 2)')
     parser.add_argument('--force-cpu', action='store_true', dest='force_cpu',
                         help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
-    parser.set_defaults(profile=False, vocab_size=27, batch_size=40, seq_len=5, num_hidden_layers=2,
-                        learning_rate=0.5, iterations=10, seed=42, max_layer_gpu=1, force_cpu=False)
+    parser.set_defaults(profile=False, vocab_size=27, batch_size=40, seq_len=5, num_hidden_layers=3,
+                        learning_rate=0.5, iterations=10, seed=42, max_layer_gpu=2, force_cpu=False)
 
     args = parser.parse_args()
 

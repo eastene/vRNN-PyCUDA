@@ -79,9 +79,9 @@ class RNNTestCase(unittest.TestCase):
 
     def test_train_sample_gpu_async(self):
         vocab = string.ascii_lowercase + " "
-        num_unroll = 3
+        num_unroll = 13
         vocab_size = len(vocab)
-        batch_size = 2
+        batch_size = 50
         num_layers = 4
         learning_rate = 0.05
 
@@ -96,6 +96,7 @@ class RNNTestCase(unittest.TestCase):
         tokens = tokenize_char(text)
         normal = normalize(tokens)
 
+        print("Starting async test")
         lstm.train_gpu_async(list(vocab), normal, 4)
 
         lstm.run(list(vocab), "This is a test of the gpu version")

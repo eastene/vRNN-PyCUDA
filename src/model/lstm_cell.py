@@ -12,7 +12,7 @@ import skcuda.misc as misc
 
 from src.utils.activations import *
 from src.utils.cuda import *
-
+from time import time
 
 def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     """

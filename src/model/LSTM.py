@@ -1,7 +1,7 @@
 #from pycuda.tools import make_default_context
 import pycuda.autoinit
 import pycuda.driver
-from skcuda.misc import init as skcuda_init
+import skcuda.linalg
 from sklearn.metrics import log_loss
 from textwrap import wrap
 from time import time
@@ -55,7 +55,7 @@ class LSTM:
 
     def train_gpu(self, vocab, text, iterations, allowable_layers_on_gpu=1):
         print("Training LSTM on GPU with Prefetching disabled")
-        skcuda_init()
+        skcuda.linalg.init()
         coder = VocabCoder(vocab)
         batch_generator = BatchGenerator(text, self.batch_size, self.num_unroll, self.vocab_size, coder)
         layer_queue = []
@@ -100,7 +100,7 @@ class LSTM:
         :return:
         """
         print("Training LSTM on GPU with Prefetching enabled")
-        skcuda_init()
+        skcuda.linalg.init()
         coder = VocabCoder(vocab)
         batch_generator = BatchGenerator(text, self.batch_size, self.num_unroll, self.vocab_size, coder)
         layer_queue = []
