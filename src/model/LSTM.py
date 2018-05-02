@@ -26,6 +26,8 @@ class LSTM:
 
         self.parameters = self.allocate_parameters()
         self.gpu_streams = {}
+        self.Wy = np.random.uniform(-0.01, 0.01, (self.vocab_size, self.batch_size))
+        self.by = np.random.uniform(-0.01, 0.01, (self.vocab_size, 1))
 
     def train(self, vocab, text, iterations):
         coder = VocabCoder(vocab)
@@ -46,8 +48,19 @@ class LSTM:
                 caches_cache.append(caches)
 
             loss = self.loss_func(X[:, :, 1:], y)
+            dWy = np.zeros_like(self.Wy)
+            da = np.zeros_like(loss)
+            dby = np.zeros_like(self.by)
+            for i in range(self.num_unroll):
+                dWy += loss[:,:,i] * y[:,:,i]
+                dby += np.sum(loss[:,:,i], axis=1, keepdims=True)
+            self.Wy = self.Wy + dWy
+            self.by = self.by + dby
 
-            gradients = lstm_backward(loss, caches_cache[len(caches_cache) - 1])
+            for i in range(self.num_unroll):
+                da[:,:,i] = loss[:,:,i] * self.Wy
+
+            gradients = lstm_backward(da, caches_cache[len(caches_cache) - 1])
             update_weights(self.parameters[self.num_layers - 1], gradients, self.learning_rate)
             for layer in reversed(range(self.num_layers - 1)):
                 gradients = lstm_backward(gradients['dx'], caches_cache[layer])
@@ -291,31 +304,35 @@ class LSTM:
             for layer in range(1, self.num_layers):
                 a, y, c, caches = lstm_forward(y, a0, self.parameters[layer])
 
-            for i in range(self.num_unroll):
-                for j in range(self.batch_size):
-                    out.append(coder.index_2_word(np.argmax(np.transpose(y[:, j, i]))))
+            for j in range(self.num_unroll):
+                y_seq = softmax(self.Wy * y[:, :, j] + self.by)
+                for k in range(self.batch_size):
+                    #if i == 1 and j == 1 and k == 1:
+                    out.append(coder.index_2_word(np.argmax(np.transpose((y_seq[:, k])))))
             X = y
 
         print("\n".join(wrap("".join(out), 80)))
 
     def loss_func(self, y, yhat):
-        return y - yhat
+        loss = np.zeros_like(y)
+        for i in range(self.num_unroll):
+            loss[:,:,i] = softmax(self.Wy * yhat[:,:,i] + self.by) - y[:,:,i]
+        return loss
 
     def allocate_parameters(self):
         parameters = []
         for i in range(self.num_layers):
-            Wf = np.random.randn(self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1])
-            bf = np.random.randn(self.layer_size[i], 1)
-            Wi = np.random.randn(self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1])
-            bi = np.random.randn(self.layer_size[i], 1)
-            Wo = np.random.randn(self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1])
-            bo = np.random.randn(self.layer_size[i], 1)
-            Wc = np.random.randn(self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1])
-            bc = np.random.randn(self.layer_size[i], 1)
-            Wy = np.random.randn(self.layer_size[i], self.layer_size[i + 1])
-            by = np.random.randn(self.layer_size[i], 1)
-            parameters_cell = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "Wy": Wy, "bf": bf, "bi": bi, "bo": bo,
-                               "bc": bc, "by": by}
+            Wf = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bf = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
+            Wi = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bi = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
+            Wo = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bo = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
+            Wc = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bc = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
+
+            parameters_cell = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "bf": bf, "bi": bi, "bo": bo,
+                               "bc": bc}
             parameters.append(parameters_cell)
         return parameters
 

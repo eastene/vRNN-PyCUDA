@@ -53,12 +53,10 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     bc = parameters["bc"]
     Wo = parameters["Wo"]
     bo = parameters["bo"]
-    Wy = parameters["Wy"]
-    by = parameters["by"]
 
     # Retrieve dimensions from shapes of xt and Wy
     n_x, m = xt.shape
-    n_y, n_a = Wy.shape
+    n_a, n_t = Wf.shape
 
     # Concatenate a_prev and xt
     concat = np.zeros(((n_a + n_x), m))
@@ -74,7 +72,7 @@ def lstm_cell_forward(xt, a_prev, c_prev, parameters):
     a_next = ot * np.tanh(c_next)
 
     # Compute prediction of the LSTM cell
-    yt_pred = softmax(np.matmul(Wy, a_next) + by)
+    yt_pred = a_next
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
@@ -122,28 +120,34 @@ def lstm_cell_forward_gpu(xt, a_prev, c_prev, parameters):
     bc = parameters["bc"]
     Wo = parameters["Wo"]
     bo = parameters["bo"]
-    Wy = parameters["Wy"]
-    by = parameters["by"]
 
     # Retrieve dimensions from shapes of xt and Wy
     n_x, m = xt.shape
-    n_y, n_a = Wy.shape
+    n_a, n_t = Wf.shape
 
     # Concatenate a_prev and xt
-    concat = pycuda.gpuarray.zeros(((n_a + n_x), m), dtype=np.float64)
+    concat = pycuda.gpuarray.empty(((n_a + n_x), m), dtype=np.float64)
     concat[: n_a, :] = a_prev
     concat[n_a:, :] = xt
 
+
     # Compute values for ft, it, cct, c_next, ot, a_next
-    ft = sigmoid_gpu(misc.add_matvec(linalg.dot(Wf, concat), bf))
-    it = sigmoid_gpu(misc.add_matvec(linalg.dot(Wi, concat), bi))
-    cct = tanh_gpu(misc.add_matvec(linalg.dot(Wc, concat), bc))
+    a1 = misc.add_matvec(linalg.dot(Wf, concat), bf)
+    a2 = misc.add_matvec(linalg.dot(Wi, concat), bi)
+    a3 = misc.add_matvec(linalg.dot(Wc, concat), bc)
+    a4 = misc.add_matvec(linalg.dot(Wo, concat), bo)
+
+    ft = sigmoid_gpu(a1)
+    it = sigmoid_gpu(a2)
+    cct = tanh_gpu(a3)
+    ot = sigmoid_gpu(a4)
+
+
     c_next = ft * c_prev + it * cct
-    ot = sigmoid_gpu(misc.add_matvec(linalg.dot(Wo, concat), bo))
     a_next = ot * tanh_gpu(c_next)
 
     # Compute prediction of the LSTM cell
-    yt_pred = softmax_gpu(misc.add_matvec(linalg.dot(Wy, a_next), by))
+    yt_pred = a_next
 
     # store values needed for backward propagation in cache
     cache = (a_next, c_next, a_prev, c_prev, ft, it, cct, ot, xt, parameters)
@@ -250,7 +254,7 @@ def lstm_cell_backward_gpu(da_next, dc_next, cache):
     dit = (dc_next * cct + ot * (1 - square_gpu(tanh_gpu(c_next))) * cct * da_next) * it * (1 - it)
     dft = (dc_next * c_prev + ot * (1 - square_gpu(tanh_gpu(c_next))) * c_prev * da_next) * ft * (1 - ft)
 
-    concat = pycuda.gpuarray.zeros(((n_a + n_x), m), dtype=np.float64)
+    concat = pycuda.gpuarray.empty(((n_a + n_x), m), dtype=np.float64)
     concat[:n_a,:] = a_prev
     concat[n_a:,:] = xt
 

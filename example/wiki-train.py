@@ -35,8 +35,6 @@ def profile():
     num_hidden_layers = 3
     learning_rate = 0.5
 
-    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
-
     with open('wiki-train-data.txt', 'r') as f:
         training_set = f.read()
 
@@ -70,6 +68,7 @@ def profile():
     print("Prefetching enabled, 2 layers: {0}".format(e2 - s2))
     print("No Prefetching, 2 layers: {0}".format(e3 - s3))
     print("Prefetching enabled, 2 layers: {0}".format(e4 - s4))
+
 
 def gen_vocab(size):
     corpus = ""
@@ -133,7 +132,7 @@ def main():
 
     # Step 2: NLP processing of corpus
     with open('wiki-train-data.txt', 'r') as f:
-        training_set = f.read()
+        training_set = f.read().replace('\n', ' ')
 
     if args.vocab_size == 27:
         tokens = tokenize_char(training_set)

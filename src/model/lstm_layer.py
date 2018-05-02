@@ -36,12 +36,12 @@ def lstm_forward(x, a0, parameters):
 
     # Retrieve dimensions from shapes of x and parameters['Wy'] (≈2 lines)
     n_x, m, T_x = x.shape
-    n_y, n_a = parameters['Wy'].shape
+    n_a, n_t = parameters['Wf'].shape
 
     # initialize "a", "c" and "y" with zeros (≈3 lines)
     a = np.zeros((n_a, m, T_x))
     c = np.zeros((n_a, m, T_x))
-    y = np.zeros((n_y, m, T_x))
+    y = np.zeros((n_a, m, T_x))
 
     # Initialize a_next and c_next (≈2 lines)
     a_next = a0
@@ -95,12 +95,12 @@ def lstm_forward_gpu(x, a0, parameters):
 
     # Retrieve dimensions from shapes of x and parameters['Wy'] (≈2 lines)
     n_x, m, T_x = x.shape
-    n_y, n_a = parameters['Wy'].shape
+    n_a, n_t = parameters['Wf'].shape
 
     # initialize "a", "c" and "y" with zeros (≈3 lines)
     a = pycuda.gpuarray.zeros((n_a, m, T_x), dtype=np.float64)
     c = pycuda.gpuarray.zeros((n_a, m, T_x), dtype=np.float64)
-    y = pycuda.gpuarray.zeros((n_y, m, T_x), dtype=np.float64)
+    y = pycuda.gpuarray.zeros((n_a, m, T_x), dtype=np.float64)
 
     # Initialize a_next and c_next (≈2 lines)
     a_next = pycuda.gpuarray.to_gpu(a0)
