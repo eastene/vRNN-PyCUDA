@@ -105,7 +105,6 @@ def read_vocab_file(vocab_file='example-vocab-10000.txt'):
     return vocab
 
 
-
 def main():
     parser = argparse.ArgumentParser(description="Train or run RNN using example Wikipedia data.")
     parser.add_argument('--profile', action='store_true', dest='profile',
