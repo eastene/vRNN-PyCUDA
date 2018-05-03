@@ -93,11 +93,10 @@ class LSTM:
 
             loss = self.loss_func(X[:, :, 1:], y.get())
 
-            gradients = lstm_backward_gpu(loss, caches_cache[len(caches_cache) - 1])
-            self.request_layer_transfer_back(self.num_layers - 1, gradients, layer_queue, allowable_layers_on_gpu)
+            dx = self.request_layer_transfer_back(self.num_layers - 1, loss, caches_cache, layer_queue, allowable_layers_on_gpu)
             for layer in reversed(range(self.num_layers - 1)):
-                gradients = lstm_backward_gpu(gradients['dx'], caches_cache[layer])
-                self.request_layer_transfer_back(layer, gradients, layer_queue, allowable_layers_on_gpu)
+                dx = self.request_layer_transfer_back(layer, dx, caches_cache, layer_queue,
+                                                 allowable_layers_on_gpu)
 
         self.evict_gpu(layer_queue)
 
@@ -164,12 +163,14 @@ class LSTM:
         the layer's data to the GPU this is because the layers are not always laid out sequentially in a CNN.
         Since our LSTM model is entirely sequential in the layers, we can avoid needing to calculate the layer to
         prefetch, since it will always be the next in sequence.
+
+        This function works for forwards propagation in which layers are accessed in the order 0, 1, ..., N
         :param layer_num: which layer is being placed on the GPU
-        :param X: data used in forward prop
-        :param a:
-        :param layer_queue:
-        :param max_layers_on_gpu:
-        :return:
+        :param X: data used in forward prop or output of
+        :param a: initial bias (all 0s)
+        :param layer_queue: order of layers on GPU
+        :param max_layers_on_gpu: Most layers allowable on GPU at a time
+        :return: function for forwards propagation
         """
         if layer_num < self.num_layers - 1:
             strm1 = pycuda.driver.Stream()
@@ -180,10 +181,10 @@ class LSTM:
                 print("Evicting layer {0} from GPU".format(evict))
                 self.parameters[evict] = layer_from_gpu_async(self.parameters[evict], strm1)
             if next_layer not in layer_queue:
+                print("Prefetching layer {0} onto GPU for Forward Prop".format(next_layer))
                 self.parameters[next_layer] = layer_to_gpu_async(self.parameters[next_layer], strm2)
                 layer_queue.append(next_layer)
                 self.gpu_streams[next_layer] = strm2
-                print("Prefetching layer {0} onto GPU for Forward Prop".format(next_layer))
         print("Layers on GPU: {0}".format(layer_queue))
         if layer_num in self.gpu_streams and not self.gpu_streams[layer_num].is_done():
             print("Waiting for layer {0} to finish fetching".format(layer_num))
@@ -192,6 +193,21 @@ class LSTM:
         return lstm_forward_gpu(X, a, self.parameters[layer_num])
 
     def prefetch_layer_back(self, layer_num, gradients, layer_queue, max_layers_on_gpu):
+        """
+        This function handles the allocation/deallocation of each RNN layer on the GPU's main memory
+        it uses a queue to determine when to evict a layer and when to add a layer. In the original
+        paper, which is specifically meant for CNNs, the next layer requires a function to prefetch
+        the layer's data to the GPU this is because the layers are not always laid out sequentially in a CNN.
+        Since our LSTM model is entirely sequential in the layers, we can avoid needing to calculate the layer to
+        prefetch, since it will always be the next in sequence.
+
+        This function works for backwards propagation in which layers are accessed in the order N, N - 1, ..., 0
+        :param layer_num: which layer to compute (prefetch layer_num - 1th layer)
+        :param gradients: ouput of backward propagation for the current layer
+        :param layer_queue: order of layers on GPU
+        :param max_layers_on_gpu: Most layers allowable on GPU at a time
+        :return: None
+        """
         if layer_num > 0:
             strm1 = pycuda.driver.Stream()
             strm2 = pycuda.driver.Stream()
@@ -201,10 +217,10 @@ class LSTM:
                 print("Evicting layer {0} from GPU".format(evict))
                 self.parameters[evict] = layer_from_gpu_async(self.parameters[evict], strm1)
             if next_layer not in layer_queue:
+                print("Prefetching layer {0} onto GPU for Back Prop".format(next_layer))
                 self.parameters[next_layer] = layer_to_gpu_async(self.parameters[next_layer], strm2)
                 layer_queue.append(next_layer)
                 self.gpu_streams[next_layer] = strm2
-                print("Prefetching layer {0} onto GPU for Back Prop".format(next_layer))
         print("Layers on GPU: {0}".format(layer_queue))
         if layer_num in self.gpu_streams and not self.gpu_streams[layer_num].is_done():
             print("Waiting for layer {0} to finish fetching".format(layer_num))
@@ -213,67 +229,43 @@ class LSTM:
         update_weights(self.parameters[layer_num], gradients, self.learning_rate)
 
     def initialize_layer_transfer_forward(self, layer_num, layer_queue, max_layers_on_gpu):
-        """
-        This function handles the allocation/deallocation of each RNN layer on the GPU's main memory
-        it uses a queue to determine when to evict a layer and when to add a layer. In the original
-        paper, which is specifically meant for CNNs, the next layer requires a function to prefetch
-        the layer's data to the GPU this is because the layers are not always laid out sequentially in a CNN.
-        Since our LSTM model is entirely sequential in the layers, we can avoid needing to calculate the layer to
-        prefetch, since it will always be the next in sequence.
-        :param layer_num: which layer is being placed on the GPU
-        :param X: data
-        :param a:
-        :param layer_queue:
-        :param max_layers_on_gpu:
-        :return:
-        """
         if len(layer_queue) >= max_layers_on_gpu and layer_num not in layer_queue:
             evict = layer_queue.pop(0)
             print("Evicting layer {0} from GPU".format(evict))
             self.parameters[evict] = layer_from_gpu(self.parameters[evict])
         if layer_num not in layer_queue:
+            print("Placing layer {0} onto GPU for Forward Prop".format(layer_num))
             self.parameters[layer_num] = layer_to_gpu(self.parameters[layer_num])
             layer_queue.append(layer_num)
-            print("Placing layer {0} onto GPU for Forward Prop".format(layer_num))
         print("Layers on GPU: {0}".format(layer_queue))
 
     def request_layer_transfer_forward(self, layer_num, X, a, layer_queue, max_layers_on_gpu):
-        """
-        This function handles the allocation/deallocation of each RNN layer on the GPU's main memory
-        it uses a queue to determine when to evict a layer and when to add a layer. In the original
-        paper, which is specifically meant for CNNs, the next layer requires a function to prefetch
-        the layer's data to the GPU this is because the layers are not always laid out sequentially in a CNN.
-        Since our LSTM model is entirely sequential in the layers, we can avoid needing to calculate the layer to
-        prefetch, since it will always be the next in sequence.
-        :param layer_num: which layer is being placed on the GPU
-        :param X: data
-        :param a:
-        :param layer_queue:
-        :param max_layers_on_gpu:
-        :return:
-        """
         if len(layer_queue) >= max_layers_on_gpu and layer_num not in layer_queue:
             evict = layer_queue.pop(0)
             print("Evicting layer {0} from GPU".format(evict))
             self.parameters[evict] = layer_from_gpu(self.parameters[evict])
+
         if layer_num not in layer_queue:
+            print("Placing layer {0} onto GPU for Forward Prop".format(layer_num))
             self.parameters[layer_num] = layer_to_gpu(self.parameters[layer_num])
             layer_queue.append(layer_num)
-            print("Placing layer {0} onto GPU for Forward Prop".format(layer_num))
         print("Layers on GPU: {0}".format(layer_queue))
         return lstm_forward_gpu(X, a, self.parameters[layer_num])
 
-    def request_layer_transfer_back(self, layer_num, gradients, layer_queue, max_layers_on_gpu):
+    def request_layer_transfer_back(self, layer_num, loss, cache, layer_queue, max_layers_on_gpu):
         if len(layer_queue) >= max_layers_on_gpu and layer_num not in layer_queue:
             evict = layer_queue.pop(0)
             print("Evicting layer {0} from GPU".format(evict))
             self.parameters[evict] = layer_from_gpu(self.parameters[evict])
+
         if layer_num not in layer_queue:
+            print("Placing layer {0} onto GPU for Back Prop".format(layer_num))
             self.parameters[layer_num] = layer_to_gpu(self.parameters[layer_num])
             layer_queue.append(layer_num)
-            print("Placing layer {0} onto GPU for Back Prop".format(layer_num))
         print("Layers on GPU: {0}".format(layer_queue))
+        gradients = lstm_backward_gpu(loss, cache[layer_num])
         update_weights(self.parameters[layer_num], gradients, self.learning_rate)
+        return gradients['dx']
 
     def evict_gpu(self, layer_queue):
         print("Training Done: Evicting GPU")

@@ -6,7 +6,7 @@ import os
 from src.preprocess.nlp import *
 from time import time
 
-# parse single json object at a time
+# parse single json object at a time for data in JSON
 def parse_file(file):
     for line in file:
         yield json.loads(line)
@@ -27,55 +27,74 @@ def run(lstm, vocab, seed):
 
 
 def profile():
+    """
+    Profile runtimes of 3 methods of GPU training with 5 different sizes.
+        1 - All layers on GPU at all times
+        2 - Prefetch layers 1 ahead with 2 layers on GPU at a time
+        3 - No prefetching, 2 layers on GPU at a time
+    :return: None
+    """
     print("Beginning Profiling...")
     # default profiling parameters
     seq_len = 5
-    vocab = string.ascii_lowercase + " "
     batch_size = 5
     num_hidden_layers = 3
     learning_rate = 0.5
 
+    times = []
+
     with open('wiki-train-data.txt', 'r') as f:
         training_set = f.read()
 
-    tokens = tokenize_char(training_set)
-
+    tokens = tokenize(training_set)
     normal = normalize(tokens)
 
-    print("Training on GPU without prefetching, all layers on GPU")
-    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
-    s1 = time()
-    lstm.train_gpu(vocab, normal, 3, num_hidden_layers)
-    e1 = time()
-    print("Training on GPU with prefetching, 2 layers on GPU at a time")
-    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
-    s2 = time()
-    lstm.train_gpu_async(vocab, normal, 3, 2)
-    e2 = time()
+    print("Generating vocabs for profiling... ")
+    vocabs = [gen_vocab(normal, 10)]
+    print("Generating vocabs for profiling... (1/5)")
+    vocabs.append(gen_vocab(normal, 100))
+    print("Generating vocabs for profiling... (2/5)")
+    vocabs.append(gen_vocab(normal, 500))
+    print("Generating vocabs for profiling... (3/5)")
+    vocabs.append(gen_vocab(normal, 1000))
+    print("Generating vocabs for profiling... (4/5)")
+    vocabs.append(gen_vocab(normal, 1500))
+    print("Generating vocabs for profiling... (5/5)")
 
-    print("Training on GPU without prefetching, 2 layers on GPU")
-    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
-    s3 = time()
-    lstm.train_gpu(vocab, normal, 3, 2)
-    e3 = time()
-    print("Training on GPU with prefetching, 2 layers on GPU at a time")
-    lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
-    s4 = time()
-    lstm.train_gpu_async(vocab, normal, 3, 2)
-    e4 = time()
+    for vocab in vocabs:
 
-    print("No Prefetching, all layers: {0}".format(e1 - s1))
-    print("Prefetching enabled, 2 layers: {0}".format(e2 - s2))
-    print("No Prefetching, 2 layers: {0}".format(e3 - s3))
-    print("Prefetching enabled, 2 layers: {0}".format(e4 - s4))
+        # Round 1 - All layers on GPU vs prefecthing
+        lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
+        s1 = time()
+        lstm.train_gpu(vocab, normal, 3, num_hidden_layers)
+        e1 = time()
+
+        lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
+        s2 = time()
+        lstm.train_gpu_async(vocab, normal, 3, 2)
+        e2 = time()
+
+        # Round 2 - sequential prefetching vs async prefetching
+        lstm = LSTM(seq_len, len(vocab), batch_size, num_hidden_layers, learning_rate)
+        s3 = time()
+        lstm.train_gpu(vocab, normal, 3, 2)
+        e3 = time()
+
+        times.append((e1, s1, e2, s2, e3, s3))
+
+    for i in range(len(vocabs)):
+        print("For vocab size of: {0}".format(len(vocabs[i])))
+        e1, s1, e2, s2, e3, s3 = times[i]
+        print("No Prefetching, all layers: {0}".format(e1 - s1))
+        print("Prefetching enabled, 2 layers: {0}".format(e2 - s2))
+        print("No Prefetching, 2 layers: {0}".format(e3 - s3))
 
 
-def gen_vocab(size):
-    corpus = ""
-    data = parse_file("wiki-train-data.txt")
-    for obj in data:
-        corpus += obj['text']
-    return top_k_word_frequencies(corpus, size)
+def gen_vocab(tokens, size):
+    if size < 1500:
+        return top_k_word_frequencies(tokens, size)
+    else:
+        return sample_k_words(tokens, size)
 
 
 def read_vocab_file(vocab_file='example-vocab-10000.txt'):
@@ -98,7 +117,7 @@ def main():
     parser.add_argument('--seq-len', dest='seq_len', type=int,
                         help='specify sequence length which is also number of LSTM cell unrollings (default 5)')
     parser.add_argument('--num-layers', dest='num_hidden_layers', type=int,
-                        help='specify number of layers to use (default 3)')
+                        help='specify number of layers to use (default 4)')
     parser.add_argument('--learn-rate', dest='learning_rate', type=float,
                         help='learning rate for updating the model')
     parser.add_argument('--iterations', dest='iterations', type=int,
@@ -111,7 +130,7 @@ def main():
                              'if set to 1, or equal to the number of layers, no prefetching will be used(default = 2)')
     parser.add_argument('--force-cpu', action='store_true', dest='force_cpu',
                         help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
-    parser.set_defaults(profile=False, vocab_size=27, batch_size=40, seq_len=5, num_hidden_layers=3,
+    parser.set_defaults(profile=False, vocab_size=27, batch_size=40, seq_len=5, num_hidden_layers=4,
                         learning_rate=0.5, iterations=10, seed=42, max_layer_gpu=2, force_cpu=False)
 
     args = parser.parse_args()
@@ -121,14 +140,6 @@ def main():
         return
 
     lstm = LSTM(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers, args.learning_rate)  # input/output layer required
-
-    # Step 1: Vocab generation
-    if args.vocab_size == 27:
-        print("Using 27 tokens (ascii lowercase and whitespace).")
-        vocab = string.ascii_lowercase + " "
-    else:
-        print("Generating vocabulary of " + str(args.vocab_size) + " unique tokens.")
-        vocab = gen_vocab(args.vocab_size)
 
     # Step 2: NLP processing of corpus
     with open('wiki-train-data.txt', 'r') as f:
@@ -141,11 +152,28 @@ def main():
 
     normal = normalize(tokens)
 
+    # Step 1: Vocab generation
+    if args.vocab_size == 27:
+        print("Using 27 tokens (ascii lowercase and whitespace).")
+        vocab = string.ascii_lowercase + " "
+    else:
+        print("Generating vocabulary of " + str(args.vocab_size) + " unique tokens.")
+        vocab = gen_vocab(normal, args.vocab_size)
+
     # Step 3: Encoding and RNN training
     print("Beginning training on example dataset")
+    s = time()
     train(lstm, vocab, normal, args.iterations, args.force_cpu, args.max_layer_gpu)
+    e = time()
 
-    run(lstm, vocab, normalize(tokenize_char("Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree")))
+    print("Training complete in {0} s on vocab of {1} tokens".format((e - s), len(vocab)))
+
+    if args.vocab_size == 27:
+        run(lstm, vocab, normalize(tokenize_char(
+            "Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree")))
+    else:
+        run(lstm, vocab, normalize(tokenize(
+            "Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree")))
 
 
 if __name__ == "__main__":

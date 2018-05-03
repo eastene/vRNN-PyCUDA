@@ -1,9 +1,30 @@
 import heapq
-
+from time import time
+from random import randrange, seed
 import nltk
 
 nltk.download('punkt')
 
+def first_k_words(text, k):
+    words = set()
+    i = 0
+    while len(words) < k and i < len(text):
+        if text[i] not in words:
+            words.add(text[i])
+        i = i + 1
+
+    return list(words)
+
+def sample_k_words(text, k):
+    words = set()
+    seed(time())
+    while len(words) < k:
+        i = randrange(0, len(text))
+
+        if text[i] not in words:
+            words.add(text[i])
+
+    return list(words)
 
 def top_k_word_frequencies(text, k):
     counts = {}
