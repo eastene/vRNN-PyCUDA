@@ -52,11 +52,11 @@ def lstm_forward(x, a0, parameters):
     for t in range(T_x):
         # Update next hidden state, next memory state, compute the prediction, get the cache (≈1 line)
         a_next, c_next, yt, cache = lstm_cell_forward(x[:,:,t], a_next, c_next, parameters)
-        # Save the value of the new "next" hidden state in a (≈1 line)
+        # Save the value of the new "next" hidden state
         a[:, :, t] = a_next
-        # Save the value of the prediction in y (≈1 line)
+        # Save the value of the prediction in y
         y[:, :, t] = yt
-        # Save the value of the next cell state (≈1 line)
+        # Save the value of the next cell state
         c[:, :, t] = c_next
         # Append the cache into caches (≈1 line)
         caches.append(cache)

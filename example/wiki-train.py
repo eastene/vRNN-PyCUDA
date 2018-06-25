@@ -129,7 +129,7 @@ def main():
                              'if set to 1, or equal to the number of layers, no prefetching will be used(default = 2)')
     parser.add_argument('--force-cpu', action='store_true', dest='force_cpu',
                         help='WARNING: NOT RECOMMENDED - train on CPU only, can be used for sanity check of GPU results')
-    parser.set_defaults(profile=False, vocab_size=27, batch_size=40, seq_len=5, num_hidden_layers=4,
+    parser.set_defaults(profile=False, vocab_size=27, batch_size=50, seq_len=5, num_hidden_layers=4,
                         learning_rate=0.5, iterations=10, seed=42, max_layer_gpu=2, force_cpu=False)
 
     args = parser.parse_args()
@@ -138,9 +138,8 @@ def main():
         profile()
         return
 
-    lstm = LSTM(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers, args.learning_rate)  # input/output layer required
 
-    # Step 2: NLP processing of corpus
+    # Step 1: NLP processing of corpus
     with open('wiki-train-data.txt', 'r') as f:
         training_set = f.read().replace('\n', ' ')
 
@@ -151,7 +150,7 @@ def main():
 
     normal = normalize(tokens)
 
-    # Step 1: Vocab generation
+    # Step 2: Vocab generation
     if args.vocab_size == 27:
         print("Using 27 tokens (ascii lowercase and whitespace).")
         vocab = string.ascii_lowercase + " "
@@ -161,6 +160,8 @@ def main():
 
     # Step 3: Encoding and RNN training
     print("Beginning training on example dataset")
+    lstm = LSTM(args.seq_len, args.vocab_size, args.batch_size, args.num_hidden_layers,
+                args.learning_rate)  # input/output layer required
     s = time()
     train(lstm, vocab, normal, args.iterations, args.force_cpu, args.max_layer_gpu)
     e = time()
@@ -169,10 +170,12 @@ def main():
 
     if args.vocab_size == 27:
         run(lstm, vocab, normalize(tokenize_char(
-            "Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree")))
+            "Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree"))
+        )
     else:
         run(lstm, vocab, normalize(tokenize(
-            "Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree")))
+            "Apple's first logo, designed by Ron Wayne, depicts Sir Isaac Newton sitting under an apple tree"))
+        )
 
 
 if __name__ == "__main__":

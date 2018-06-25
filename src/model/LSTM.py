@@ -2,7 +2,6 @@
 import pycuda.autoinit
 import pycuda.driver
 import skcuda.linalg
-from sklearn.metrics import log_loss
 from textwrap import wrap
 from time import time
 
@@ -10,6 +9,8 @@ from src.model.lstm_layer import *
 from src.preprocess.BatchGenerator import BatchGenerator
 from src.preprocess.VocabCoder import VocabCoder
 
+LOGGING = False
+LOG_INTERVAL = 25
 
 class LSTM:
 
@@ -42,23 +43,33 @@ class LSTM:
 
             a0 = np.zeros((self.vocab_size, self.batch_size))
             a, y, c, caches = lstm_forward(X[:, :, :self.num_unroll], a0, self.parameters[0])
+
             caches_cache.append(caches)
             for layer in range(1, self.num_layers):
                 a, y, c, caches = lstm_forward(y, a0, self.parameters[layer])
                 caches_cache.append(caches)
 
             loss = self.loss_func(X[:, :, 1:], y)
+
+            if LOGGING and (i % LOG_INTERVAL == 0):
+                print("Loss={}, step={}".format(loss, i))
+                print("Probabilities=")
+                for roll in range(self.num_unroll):
+                    print(softmax(self.Wy * y[:,:,roll] + self.by))
+
             dWy = np.zeros_like(self.Wy)
-            da = np.zeros_like(loss)
+            da = np.zeros_like(y)
             dby = np.zeros_like(self.by)
+
             for i in range(self.num_unroll):
-                dWy += loss[:,:,i] * y[:,:,i]
-                dby += np.sum(loss[:,:,i], axis=1, keepdims=True)
+                dWy += loss[i] * y[:,:,i]
+                dby += np.sum(loss[i], axis=0, keepdims=True)
+
             self.Wy = self.Wy + dWy
             self.by = self.by + dby
 
             for i in range(self.num_unroll):
-                da[:,:,i] = loss[:,:,i] * self.Wy
+                da[:,:,i] = loss[i] * self.Wy
 
             gradients = lstm_backward(da, caches_cache[len(caches_cache) - 1])
             update_weights(self.parameters[self.num_layers - 1], gradients, self.learning_rate)
@@ -276,7 +287,7 @@ class LSTM:
             except AttributeError:
                 print("Layer already on CPU")
 
-    def run(self, vocab, seed):
+    def run(self, vocab, seq_seed):
         print("Generating Output:\n\n")
         coder = VocabCoder(vocab)
         num_iter = 100
@@ -288,8 +299,8 @@ class LSTM:
         k = 0
         for i in range(self.batch_size):
             for j in range(self.num_unroll):
-                X[coder.word_2_index(seed[k]), i, j] = 1
-                k = (k + 1) % len(seed)
+                X[coder.word_2_index(seq_seed[k]), i, j] = 1
+                k = (k + 1) % len(seq_seed)
 
         for i in range(num_iter):
             a, y, c, caches = lstm_forward(X[:, :, :self.num_unroll], a0, self.parameters[0])
@@ -297,7 +308,7 @@ class LSTM:
                 a, y, c, caches = lstm_forward(y, a0, self.parameters[layer])
 
             for j in range(self.num_unroll):
-                y_seq = softmax(self.Wy * y[:, :, j] + self.by)
+                y_seq = self.Wy * y[:, :, j] + self.by
                 for k in range(self.batch_size):
                     #if i == 1 and j == 1 and k == 1:
                     out.append(coder.index_2_word(np.argmax(np.transpose((y_seq[:, k])))))
@@ -306,10 +317,15 @@ class LSTM:
         print("\n".join(wrap("".join(out), 80)))
 
     def loss_func(self, y, yhat):
-        loss = np.zeros_like(y)
+        loss = []
         for i in range(self.num_unroll):
-            loss[:,:,i] = softmax(self.Wy * yhat[:,:,i] + self.by) - y[:,:,i]
-        return loss
+            y_hat = softmax(self.Wy * yhat[:,:,i] + self.by)
+            y_true = []
+            for j in range(self.batch_size):
+                y_true.append(np.argmax(np.transpose((y[:,j,i]))))
+            log_loss = -np.log(y_hat[np.hstack(y_true), range(self.batch_size)])
+            loss.append(np.sum(log_loss) / self.batch_size)
+        return np.vstack(loss)
 
     def allocate_parameters(self):
         parameters = []
