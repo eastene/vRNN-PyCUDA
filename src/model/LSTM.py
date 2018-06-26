@@ -9,7 +9,7 @@ from src.model.lstm_layer import *
 from src.preprocess.BatchGenerator import BatchGenerator
 from src.preprocess.VocabCoder import VocabCoder
 
-LOGGING = False
+LOGGING = True
 LOG_INTERVAL = 25
 
 class LSTM:
@@ -27,7 +27,7 @@ class LSTM:
 
         self.parameters = self.allocate_parameters()
         self.gpu_streams = {}
-        self.Wy = np.random.uniform(-0.01, 0.01, (self.vocab_size, self.batch_size))
+        self.Wy = np.random.uniform(-1, 1, (self.vocab_size, self.batch_size))
         self.by = np.random.uniform(-0.01, 0.01, (self.vocab_size, 1))
 
     def train(self, vocab, text, iterations):
@@ -40,36 +40,37 @@ class LSTM:
 
             # forward prop
             caches_cache = []
-
             a0 = np.zeros((self.vocab_size, self.batch_size))
             a, y, c, caches = lstm_forward(X[:, :, :self.num_unroll], a0, self.parameters[0])
-
             caches_cache.append(caches)
             for layer in range(1, self.num_layers):
                 a, y, c, caches = lstm_forward(y, a0, self.parameters[layer])
                 caches_cache.append(caches)
 
-            loss = self.loss_func(X[:, :, 1:], y)
+            loss = []
+            for roll in range(self.num_unroll):
+                output_layer = self.Wy * y[:, :, roll] + self.by
+                loss.append(self.loss_func(X[:, :, 1+roll], output_layer))
 
             if LOGGING and (i % LOG_INTERVAL == 0):
                 print("Loss={}, step={}".format(loss, i))
                 print("Probabilities=")
                 for roll in range(self.num_unroll):
-                    print(softmax(self.Wy * y[:,:,roll] + self.by))
+                    print(softmax(self.Wy * y[:, :, roll] + self.by))
 
             dWy = np.zeros_like(self.Wy)
             da = np.zeros_like(y)
             dby = np.zeros_like(self.by)
 
             for i in range(self.num_unroll):
-                dWy += loss[i] * y[:,:,i]
-                dby += np.sum(loss[i], axis=0, keepdims=True)
+                dWy += loss[i] * y[:, :, i]
+                dby += loss[i]
 
             self.Wy = self.Wy + dWy
             self.by = self.by + dby
 
             for i in range(self.num_unroll):
-                da[:,:,i] = loss[i] * self.Wy
+                da[:, :, i] = loss[i] * self.Wy
 
             gradients = lstm_backward(da, caches_cache[len(caches_cache) - 1])
             update_weights(self.parameters[self.num_layers - 1], gradients, self.learning_rate)
@@ -316,28 +317,25 @@ class LSTM:
 
         print("\n".join(wrap("".join(out), 80)))
 
-    def loss_func(self, y, yhat):
-        loss = []
-        for i in range(self.num_unroll):
-            y_hat = softmax(self.Wy * yhat[:,:,i] + self.by)
-            y_true = []
-            for j in range(self.batch_size):
-                y_true.append(np.argmax(np.transpose((y[:,j,i]))))
-            log_loss = -np.log(y_hat[np.hstack(y_true), range(self.batch_size)])
-            loss.append(np.sum(log_loss) / self.batch_size)
-        return np.vstack(loss)
+    def loss_func(self, y, output):
+        y_hat = softmax(output)
+        y_true = []
+        for j in range(self.batch_size):
+            y_true.append(np.argmax(np.transpose((y[:, j]))))
+        log_loss = -np.log(y_hat[np.hstack(y_true), range(self.batch_size)])
+        return np.sum(log_loss) / self.batch_size
 
     def allocate_parameters(self):
         parameters = []
         for i in range(self.num_layers):
-            Wf = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bf = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
-            Wi = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bi = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
-            Wo = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bo = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
-            Wc = np.random.uniform(-0.01, 0.01, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bc = np.random.uniform(-0.01, 0.01, (self.layer_size[i], 1))
+            Wf = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bf = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
+            Wi = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bi = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
+            Wo = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bo = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
+            Wc = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
+            bc = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
 
             parameters_cell = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "bf": bf, "bi": bi, "bo": bo,
                                "bc": bc}
