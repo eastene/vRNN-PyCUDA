@@ -22,13 +22,13 @@ class BatchGenerator:
         yield self.gen_batch()
 
     def gen_batch(self):
-        batches = np.zeros((self.vocab_size, self.batch_size, self.num_unroll + 1))
+        batches = np.zeros((self.batch_size, self.vocab_size, self.num_unroll + 1))
 
         for i in range(self.num_unroll + 1):
             for j in range(self.batch_size):
                 idx = self.vocab_coder.word_2_index(self.text[(self.bookmark + j) % len(self.text)])
                 if idx != -1:
-                    batches[idx,j,i] = 1
+                    batches[j,idx,i] = 1
             self.bookmark = (self.bookmark + self.batch_size) % len(self.text)
 
         return batches

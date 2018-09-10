@@ -36,13 +36,12 @@ def lstm_forward(x, a0, parameters):
     caches = []
 
     # Retrieve dimensions from shapes of x and parameters['Wy'] (≈2 lines)
-    n_x, m, T_x = x.shape
+    m, n_x, T_x = x.shape
     n_a, n_t = parameters['Wf'].shape
 
     # initialize "a", "c" and "y" with zeros (≈3 lines)
-    a = np.zeros((n_a, m, T_x))
-    c = np.zeros((n_a, m, T_x))
-    y = np.zeros((n_a, m, T_x))
+    a = np.zeros((m, n_t, T_x))
+    c = np.zeros((m, n_t, T_x))
 
     # Initialize a_next and c_next (≈2 lines)
     a_next = a0
@@ -51,11 +50,9 @@ def lstm_forward(x, a0, parameters):
     # loop over all time-steps
     for t in range(T_x):
         # Update next hidden state, next memory state, compute the prediction, get the cache (≈1 line)
-        a_next, c_next, yt, cache = lstm_cell_forward(x[:,:,t], a_next, c_next, parameters)
+        a_next, c_next, cache = lstm_cell_forward(x[:,:,t], a_next, c_next, parameters)
         # Save the value of the new "next" hidden state
         a[:, :, t] = a_next
-        # Save the value of the prediction in y
-        y[:, :, t] = yt
         # Save the value of the next cell state
         c[:, :, t] = c_next
         # Append the cache into caches (≈1 line)
@@ -64,7 +61,7 @@ def lstm_forward(x, a0, parameters):
     # store values needed for backward propagation in cache
     caches = (caches, x)
 
-    return a, y, c, caches
+    return a, c, caches
 
 
 def lstm_forward_gpu(x, a0, parameters):

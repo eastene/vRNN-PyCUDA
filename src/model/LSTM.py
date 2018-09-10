@@ -27,8 +27,10 @@ class LSTM:
 
         self.parameters = self.allocate_parameters()
         self.gpu_streams = {}
-        self.Wy = np.random.uniform(-1, 1, (self.vocab_size, self.batch_size))
-        self.by = np.random.uniform(-0.01, 0.01, (self.vocab_size, 1))
+
+        # fully connected output layer
+        self.Wy = np.random.uniform(-1, 1, (self.layer_size[-1], self.vocab_size))
+        self.by = np.random.uniform(-0.01, 0.01, (1, self.vocab_size))
 
     def train(self, vocab, text, iterations):
         coder = VocabCoder(vocab)
@@ -40,30 +42,35 @@ class LSTM:
 
             # forward prop
             caches_cache = []
-            a0 = np.zeros((self.vocab_size, self.batch_size))
-            a, y, c, caches = lstm_forward(X[:, :, :self.num_unroll], a0, self.parameters[0])
+            a0 = np.zeros((self.batch_size, self.layer_size[0]))
+            a, c, caches = lstm_forward(X, a0, self.parameters[0])
             caches_cache.append(caches)
             for layer in range(1, self.num_layers):
-                a, y, c, caches = lstm_forward(y, a0, self.parameters[layer])
+                a, c, caches = lstm_forward(a, a0, self.parameters[layer])
                 caches_cache.append(caches)
 
             loss = []
+            probabilities = []
+            # compute loss from fully connected layer
             for roll in range(self.num_unroll):
-                output_layer = self.Wy * y[:, :, roll] + self.by
-                loss.append(self.loss_func(X[:, :, 1+roll], output_layer))
+                output_layer = np.matmul(a[:, :, roll], self.Wy) + self.by
+                softmax_layer = softmax(output_layer)
+                probabilities.append(softmax_layer)
+                loss.append(self.loss_func(X[:, :, 1+roll], softmax_layer))
 
             if LOGGING and (i % LOG_INTERVAL == 0):
                 print("Loss={}, step={}".format(loss, i))
                 print("Probabilities=")
                 for roll in range(self.num_unroll):
-                    print(softmax(self.Wy * y[:, :, roll] + self.by))
+                    print(probabilities[i])
 
             dWy = np.zeros_like(self.Wy)
-            da = np.zeros_like(y)
+            da = np.zeros_like(a)
             dby = np.zeros_like(self.by)
 
             for i in range(self.num_unroll):
-                dWy += loss[i] * y[:, :, i]
+                print(a.shape)
+                dWy += loss[i] * a[:, :, i]
                 dby += loss[i]
 
             self.Wy = self.Wy + dWy
@@ -318,24 +325,26 @@ class LSTM:
         print("\n".join(wrap("".join(out), 80)))
 
     def loss_func(self, y, output):
-        y_hat = softmax(output)
+        y_hat = output
         y_true = []
         for j in range(self.batch_size):
             y_true.append(np.argmax(np.transpose((y[:, j]))))
-        log_loss = -np.log(y_hat[np.hstack(y_true), range(self.batch_size)])
+        print(y_hat[range(self.batch_size), np.hstack(y_true)])
+        log_loss = -np.log(y_hat[range(self.batch_size), np.hstack(y_true)])
         return np.sum(log_loss) / self.batch_size
 
     def allocate_parameters(self):
         parameters = []
         for i in range(self.num_layers):
-            Wf = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bf = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
-            Wi = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bi = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
-            Wo = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bo = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
-            Wc = np.random.uniform(-1, 1, (self.layer_size[i], self.layer_size[i] + self.layer_size[i + 1]))
-            bc = np.random.uniform(-0.1, 0.1, (self.layer_size[i], 1))
+            # generally of form (x :: a)A + b
+            Wf = np.random.uniform(-1, 1, ((self.layer_size[i] + self.layer_size[i + 1]), self.layer_size[i + 1]))
+            bf = np.random.uniform(-0.1, 0.1, (1, self.layer_size[i + 1]))
+            Wi = np.random.uniform(-1, 1, ((self.layer_size[i] + self.layer_size[i + 1]), self.layer_size[i + 1]))
+            bi = np.random.uniform(-0.1, 0.1, (1, self.layer_size[i + 1]))
+            Wo = np.random.uniform(-1, 1, ((self.layer_size[i] + self.layer_size[i + 1]), self.layer_size[i + 1]))
+            bo = np.random.uniform(-0.1, 0.1, (1, self.layer_size[i + 1]))
+            Wc = np.random.uniform(-1, 1, ((self.layer_size[i] + self.layer_size[i + 1]), self.layer_size[i + 1]))
+            bc = np.random.uniform(-0.1, 0.1, (1, self.layer_size[i + 1]))
 
             parameters_cell = {"Wf": Wf, "Wi": Wi, "Wo": Wo, "Wc": Wc, "bf": bf, "bi": bi, "bo": bo,
                                "bc": bc}
